@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DoraAI - Voice & Translation Monitor</title>
+    <link rel="stylesheet" href="css/ai.css">
+    <style>
+        /* Dashboard-specific styles */
+        .dashboard-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 20px;
+            gap: 20px;
+            overflow-y: auto;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #0f3460;
+        }
+
+        .dashboard-header h1 {
+            font-size: 24px;
+            color: #e94560;
+        }
+
+        .dashboard-header .back-link {
+            color: #888;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .dashboard-header .back-link:hover {
+            color: #e94560;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            flex: 1;
+        }
+
+        .card {
+            background: #16213e;
+            border: 1px solid #0f3460;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .card h2 {
+            font-size: 16px;
+            color: #e94560;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-item {
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-item .stat-label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .stat-item .stat-value {
+            font-size: 22px;
+            font-weight: bold;
+            color: #e0e0e0;
+        }
+
+        .stat-item .stat-value.active {
+            color: #4caf50;
+        }
+
+        .stat-item .stat-value.warning {
+            color: #ff9800;
+        }
+
+        .stat-item .stat-value.danger {
+            color: #e94560;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-badge.available {
+            background: #4caf50;
+            color: white;
+        }
+
+        .status-badge.unavailable {
+            background: #e94560;
+            color: white;
+        }
+
+        .status-badge.checking {
+            background: #ff9800;
+            color: white;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-group label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .form-control {
+            background: #1a1a2e;
+            border: 1px solid #0f3460;
+            border-radius: 6px;
+            padding: 10px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #e94560;
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 80px;
+            font-family: inherit;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #e94560;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #c73e54;
+        }
+
+        .btn-secondary {
+            background: #0f3460;
+            color: #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            background: #1a4a8a;
+        }
+
+        .btn-danger {
+            background: #e94560;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c73e54;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .result-box {
+            background: #1a1a2e;
+            border: 1px solid #0f3460;
+            border-radius: 8px;
+            padding: 12px;
+            min-height: 60px;
+            font-size: 14px;
+            color: #e0e0e0;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .language-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .language-item {
+            background: #1a1a2e;
+            border: 1px solid #0f3460;
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
+            font-size: 12px;
+            color: #e0e0e0;
+        }
+
+        .language-item .lang-code {
+            font-weight: bold;
+            color: #e94560;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .activity-log {
+            background: #1a1a2e;
+            border: 1px solid #0f3460;
+            border-radius: 8px;
+            padding: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .activity-log .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid #0f3460;
+            color: #888;
+        }
+
+        .activity-log .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .activity-log .log-entry .timestamp {
+            color: #e94560;
+            margin-right: 8px;
+        }
+
+        .recording-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .record-btn {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid #e94560;
+            background: transparent;
+            color: #e94560;
+            font-size: 32px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .record-btn:hover {
+            background: #e94560;
+            color: white;
+        }
+
+        .record-btn.recording {
+            background: #e94560;
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(233, 69, 96, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(233, 69, 96, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(233, 69, 96, 0); }
+        }
+
+        .recording-status {
+            font-size: 14px;
+            color: #888;
+        }
+
+        .recording-status.active {
+            color: #e94560;
+        }
+
+        .translation-pair {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .translation-pair .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slider-container input[type="range"] {
+            flex: 1;
+        }
+
+        .slider-value {
+            min-width: 40px;
+            text-align: center;
+            color: #e94560;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <div class="dashboard-header">
+            <h1>🎤 Voice & Translation Monitor</h1>
+            <a href="ai.html" class="back-link">← Back to Chat</a>
+        </div>
+
+        <!-- Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Service Status Card -->
+            <div class="card">
+                <h2>Service Status</h2>
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">Whisper Model</div>
+                        <div class="stat-value">
+                            <span id="whisperStatus" class="status-badge checking">Checking...</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">LLM Model</div>
+                        <div class="stat-value">
+                            <span id="llmStatus" class="status-badge checking">Checking...</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Microphone</div>
+                        <div class="stat-value">
+                            <span id="micStatus" class="status-badge checking">Checking...</span>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Total Transcriptions</div>
+                        <div class="stat-value" id="totalTranscriptions">0</div>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button id="checkStatusBtn" class="btn btn-primary">Check Status</button>
+                </div>
+            </div>
+
+            <!-- Supported Languages Card -->
+            <div class="card">
+                <h2>Supported Languages</h2>
+                <div id="languageList" class="language-list">
+                    <div class="language-item">
+                        <span class="lang-code">Loading...</span>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button id="refreshLanguagesBtn" class="btn btn-secondary">Refresh</button>
+                </div>
+            </div>
+
+            <!-- Voice Recording Card -->
+            <div class="card">
+                <h2>Voice Recording Demo</h2>
+                <div class="recording-area">
+                    <button id="recordBtn" class="record-btn" title="Click to start recording">
+                        🎤
+                    </button>
+                    <div id="recordingStatus" class="recording-status">Click to start recording</div>
+                    <div id="recordingTimer" class="stat-item" style="display: none;">
+                        <div class="stat-label">Duration</div>
+                        <div class="stat-value" id="timerValue">00:00</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Transcription Result</label>
+                    <div id="transcriptionResult" class="result-box">No transcription yet...</div>
+                </div>
+                <div class="form-group">
+                    <label>Detected Language</label>
+                    <div id="detectedLanguage" class="result-box" style="min-height: 30px;">-</div>
+                </div>
+            </div>
+
+            <!-- Translation Demo Card -->
+            <div class="card">
+                <h2>Translation Demo</h2>
+                <div class="translation-pair">
+                    <div class="form-group">
+                        <label>Source Text</label>
+                        <textarea id="sourceText" class="form-control" placeholder="Enter text to translate...">Hello, how are you?</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Translated Text</label>
+                        <div id="translatedText" class="result-box">Translation will appear here...</div>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Source Language</label>
+                        <select id="sourceLang" class="form-control">
+                            <option value="en">English</option>
+                            <option value="zh">Chinese</option>
+                            <option value="ja">Japanese</option>
+                            <option value="ko">Korean</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                            <option value="es">Spanish</option>
+                            <option value="ru">Russian</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Target Language</label>
+                        <select id="targetLang" class="form-control">
+                            <option value="zh">Chinese</option>
+                            <option value="en">English</option>
+                            <option value="ja">Japanese</option>
+                            <option value="ko">Korean</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                            <option value="es">Spanish</option>
+                            <option value="ru">Russian</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button id="translateBtn" class="btn btn-primary">Translate</button>
+                    <button id="swapLangsBtn" class="btn btn-secondary">⇄ Swap</button>
+                </div>
+            </div>
+
+            <!-- Quick Translation Tests Card -->
+            <div class="card">
+                <h2>Quick Translation Tests</h2>
+                <div class="form-group">
+                    <label>Test Phrases</label>
+                    <div class="btn-group" style="flex-wrap: wrap;">
+                        <button class="btn btn-secondary test-phrase" data-text="Hello world">Hello world</button>
+                        <button class="btn btn-secondary test-phrase" data-text="How are you?">How are you?</button>
+                        <button class="btn btn-secondary test-phrase" data-text="Thank you very much">Thank you</button>
+                        <button class="btn btn-secondary test-phrase" data-text="Good morning">Good morning</button>
+                        <button class="btn btn-secondary test-phrase" data-text="See you later">See you later</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Results</label>
+                    <div id="quickTestResults" class="activity-log">
+                        <div class="log-entry">Click a phrase to test translation...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Log Card -->
+            <div class="card">
+                <h2>Activity Log</h2>
+                <div id="activityLog" class="activity-log">
+                    <div class="log-entry">
+                        <span class="timestamp">[System]</span>
+                        Voice & Translation monitor initialized
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button id="clearLogBtn" class="btn btn-secondary">Clear Log</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/ai-api.js"></script>
+    <script src="js/ai-voice.js"></script>
+    <script>
+        // State
+        let transcriptionCount = 0;
+        let isRecording = false;
+        let recordingStartTime = null;
+        let timerInterval = null;
+
+        // DOM Elements
+        const whisperStatus = document.getElementById('whisperStatus');
+        const llmStatus = document.getElementById('llmStatus');
+        const micStatus = document.getElementById('micStatus');
+        const totalTranscriptions = document.getElementById('totalTranscriptions');
+        const languageList = document.getElementById('languageList');
+        const recordBtn = document.getElementById('recordBtn');
+        const recordingStatus = document.getElementById('recordingStatus');
+        const recordingTimer = document.getElementById('recordingTimer');
+        const timerValue = document.getElementById('timerValue');
+        const transcriptionResult = document.getElementById('transcriptionResult');
+        const detectedLanguage = document.getElementById('detectedLanguage');
+        const sourceText = document.getElementById('sourceText');
+        const translatedText = document.getElementById('translatedText');
+        const sourceLang = document.getElementById('sourceLang');
+        const targetLang = document.getElementById('targetLang');
+        const translateBtn = document.getElementById('translateBtn');
+        const swapLangsBtn = document.getElementById('swapLangsBtn');
+        const quickTestResults = document.getElementById('quickTestResults');
+        const activityLog = document.getElementById('activityLog');
+
+        // Utility functions
+        function addLogEntry(message) {
+            const now = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `<span class="timestamp">[${now}]</span> ${message}`;
+            activityLog.appendChild(entry);
+            activityLog.scrollTop = activityLog.scrollHeight;
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const secs = (seconds % 60).toString().padStart(2, '0');
+            return `${mins}:${secs}`;
+        }
+
+        // Check service status
+        async function checkServiceStatus() {
+            addLogEntry('Checking service status...');
+            
+            // Check Whisper model
+            whisperStatus.className = 'status-badge checking';
+            whisperStatus.textContent = 'Checking...';
+            
+            try {
+                const response = await fetch('/api/ai/voice/languages');
+                if (response.ok) {
+                    whisperStatus.className = 'status-badge available';
+                    whisperStatus.textContent = 'Available';
+                    addLogEntry('✓ Whisper service available');
+                } else {
+                    whisperStatus.className = 'status-badge unavailable';
+                    whisperStatus.textContent = 'Unavailable';
+                    addLogEntry('✗ Whisper service unavailable');
+                }
+            } catch (error) {
+                whisperStatus.className = 'status-badge unavailable';
+                whisperStatus.textContent = 'Error';
+                addLogEntry('✗ Failed to check Whisper: ' + error.message);
+            }
+
+            // Check LLM model (translation)
+            llmStatus.className = 'status-badge checking';
+            llmStatus.textContent = 'Checking...';
+            
+            try {
+                const response = await aiApi.translateText('test', 'en', 'en');
+                if (response) {
+                    llmStatus.className = 'status-badge available';
+                    llmStatus.textContent = 'Available';
+                    addLogEntry('✓ LLM translation available');
+                }
+            } catch (error) {
+                llmStatus.className = 'status-badge unavailable';
+                llmStatus.textContent = 'Unavailable';
+                addLogEntry('✗ LLM translation unavailable');
+            }
+
+            // Check microphone
+            micStatus.className = 'status-badge checking';
+            micStatus.textContent = 'Checking...';
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(track => track.stop());
+                micStatus.className = 'status-badge available';
+                micStatus.textContent = 'Available';
+                addLogEntry('✓ Microphone accessible');
+            } catch (error) {
+                micStatus.className = 'status-badge unavailable';
+                micStatus.textContent = 'Blocked';
+                addLogEntry('✗ Microphone access denied');
+            }
+        }
+
+        // Load supported languages
+        async function loadLanguages() {
+            addLogEntry('Loading supported languages...');
+            
+            try {
+                const languages = await aiApi.getLanguages();
+                languageList.innerHTML = '';
+                
+                if (languages && languages.length > 0) {
+                    languages.forEach(lang => {
+                        const item = document.createElement('div');
+                        item.className = 'language-item';
+                        item.innerHTML = `
+                            <span class="lang-code">${lang.code}</span>
+                            ${lang.name}
+                        `;
+                        languageList.appendChild(item);
+                    });
+                    addLogEntry(`✓ Loaded ${languages.length} languages`);
+                } else {
+                    languageList.innerHTML = '<div class="language-item"><span class="lang-code">No languages</span></div>';
+                    addLogEntry('✗ No languages available');
+                }
+            } catch (error) {
+                languageList.innerHTML = '<div class="language-item"><span class="lang-code">Error</span>Failed to load</div>';
+                addLogEntry('✗ Failed to load languages: ' + error.message);
+            }
+        }
+
+        // Voice recording
+        let mediaRecorder = null;
+        let audioChunks = [];
+
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    const audioBase64 = await blobToBase64(audioBlob);
+                    
+                    addLogEntry('Sending audio for transcription...');
+                    
+                    try {
+                        const result = await aiApi.transcribeAudio(audioBase64, null);
+                        if (result) {
+                            transcriptionCount++;
+                            totalTranscriptions.textContent = transcriptionCount;
+                            transcriptionResult.textContent = result.text || '(empty transcription)';
+                            detectedLanguage.textContent = `${result.language} (confidence: ${(result.confidence * 100).toFixed(1)}%)`;
+                            addLogEntry(`✓ Transcribed: "${result.text?.substring(0, 50)}..."`);
+                        }
+                    } catch (error) {
+                        transcriptionResult.textContent = 'Transcription failed: ' + error.message;
+                        addLogEntry('✗ Transcription failed: ' + error.message);
+                    }
+
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                recordingStartTime = Date.now();
+                
+                recordBtn.classList.add('recording');
+                recordingStatus.textContent = 'Recording... Click to stop';
+                recordingStatus.classList.add('active');
+                recordingTimer.style.display = 'block';
+                
+                timerInterval = setInterval(() => {
+                    const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+                    timerValue.textContent = formatTime(elapsed);
+                    
+                    // Auto-stop at 60 seconds
+                    if (elapsed >= 60) {
+                        stopRecording();
+                    }
+                }, 1000);
+
+                addLogEntry('🎤 Recording started');
+
+            } catch (error) {
+                addLogEntry('✗ Failed to start recording: ' + error.message);
+                recordingStatus.textContent = 'Error: ' + error.message;
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                isRecording = false;
+                
+                recordBtn.classList.remove('recording');
+                recordingStatus.textContent = 'Click to start recording';
+                recordingStatus.classList.remove('active');
+                recordingTimer.style.display = 'none';
+                
+                clearInterval(timerInterval);
+                addLogEntry('⏹ Recording stopped');
+            }
+        }
+
+        function blobToBase64(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const base64 = reader.result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        recordBtn.addEventListener('click', () => {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        });
+
+        // Translation
+        async function performTranslation() {
+            const text = sourceText.value.trim();
+            if (!text) {
+                addLogEntry('⚠ No text to translate');
+                return;
+            }
+
+            const srcLang = sourceLang.value;
+            const tgtLang = targetLang.value;
+
+            addLogEntry(`Translating: ${srcLang} → ${tgtLang}`);
+            translatedText.textContent = 'Translating...';
+
+            try {
+                const result = await aiApi.translateText(text, srcLang, tgtLang);
+                if (result) {
+                    translatedText.textContent = result.translatedText || '(empty translation)';
+                    addLogEntry(`✓ Translated: "${result.translatedText?.substring(0, 50)}..."`);
+                }
+            } catch (error) {
+                translatedText.textContent = 'Translation failed: ' + error.message;
+                addLogEntry('✗ Translation failed: ' + error.message);
+            }
+        }
+
+        translateBtn.addEventListener('click', performTranslation);
+
+        swapLangsBtn.addEventListener('click', () => {
+            const temp = sourceLang.value;
+            sourceLang.value = targetLang.value;
+            targetLang.value = temp;
+            addLogEntry('⇄ Languages swapped');
+        });
+
+        // Quick test phrases
+        document.querySelectorAll('.test-phrase').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const text = btn.dataset.text;
+                const srcLang = sourceLang.value;
+                const tgtLang = targetLang.value;
+
+                try {
+                    const result = await aiApi.translateText(text, srcLang, tgtLang);
+                    if (result) {
+                        const entry = document.createElement('div');
+                        entry.className = 'log-entry';
+                        entry.textContent = `"${text}" → "${result.translatedText}"`;
+                        quickTestResults.appendChild(entry);
+                        quickTestResults.scrollTop = quickTestResults.scrollHeight;
+                        addLogEntry(`✓ Test: "${text}" → "${result.translatedText}"`);
+                    }
+                } catch (error) {
+                    const entry = document.createElement('div');
+                    entry.className = 'log-entry';
+                    entry.textContent = `"${text}" → Error: ${error.message}`;
+                    quickTestResults.appendChild(entry);
+                    addLogEntry(`✗ Test failed: "${text}"`);
+                }
+            });
+        });
+
+        // Clear log
+        document.getElementById('clearLogBtn').addEventListener('click', () => {
+            activityLog.innerHTML = '';
+            addLogEntry('Log cleared');
+        });
+
+        // Check status button
+        document.getElementById('checkStatusBtn').addEventListener('click', checkServiceStatus);
+
+        // Refresh languages button
+        document.getElementById('refreshLanguagesBtn').addEventListener('click', loadLanguages);
+
+        // Initialize
+        checkServiceStatus();
+        loadLanguages();
+    </script>
+</body>
+</html>

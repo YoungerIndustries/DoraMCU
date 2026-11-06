@@ -1,0 +1,70 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.springframework.boot' version '4.1.2'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+application {
+    mainClass = 'com.yisy.modules.doramcu.DoraMcuLauncher'
+}
+
+bootRun {
+    systemProperty 'doramcu.development', 'true'
+}
+
+group = 'com.YISY.modules'
+version = '0.1.3'
+description = 'DoraMCU'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(27)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-mysql'
+    implementation 'org.springframework.boot:spring-boot-starter-cache'
+    implementation 'com.github.ben-manes.caffeine:caffeine:3.2.0'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+    // JSON logging for production (Logstash encoder for ELK/Grafana Loki)
+    implementation 'net.logstash.logback:logstash-logback-encoder:7.4'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.4'
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    
+    runtimeOnly 'com.mysql:mysql-connector-j'
+    runtimeOnly 'com.h2database:h2'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+    // Shared DL core module (includes Deeplearning4j dependencies)
+    implementation project(':dora-dl-core')
+
+    // Dora AI module (AI chat, code analysis, deep learning, voice services)
+    implementation project(':dora-ai')
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testRuntimeOnly 'com.h2database:h2'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    maxHeapSize = '6G'
+    jvmArgs '-XX:+UseG1GC', '-XX:MaxGCPauseMillis=200', '-Dorg.bytedeco.javacpp.maxbytes=2G', '-Dorg.bytedeco.javacpp.maxphysicalbytes=4G'
+}
+
+tasks.named('bootRun') {
+    jvmArgs '-Xmx8G', '-XX:+UseG1GC', '-XX:MaxGCPauseMillis=200', '-Dorg.bytedeco.javacpp.maxbytes=4G', '-Dorg.bytedeco.javacpp.maxphysicalbytes=8G'
+}

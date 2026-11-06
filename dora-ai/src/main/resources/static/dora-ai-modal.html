@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dora AI - Code & Game Assistant</title>
+    <link rel="stylesheet" href="css/dora-ai-modal.css">
+</head>
+<body>
+    <div class="modal-wrapper">
+        <!-- Header -->
+        <div class="modal-header">
+            <div class="header-left">
+                <h1>🤖 Dora AI</h1>
+                <span class="subtitle">Code & Game Assistant</span>
+            </div>
+            <div class="header-right">
+                <div id="statusIndicator" class="status-badge">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Checking...</span>
+                </div>
+                <button id="closeModalBtn" class="btn-close" title="Close">✕</button>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+            <button class="tab-btn active" data-tab="code-improvements">
+                <span class="tab-icon">💻</span>
+                <span>Code Improvements</span>
+            </button>
+            <button class="tab-btn" data-tab="game-analysis">
+                <span class="tab-icon">🎮</span>
+                <span>Game Analysis</span>
+            </button>
+            <button class="tab-btn" data-tab="chat">
+                <span class="tab-icon">💬</span>
+                <span>AI Chat</span>
+            </button>
+            <button class="tab-btn" data-tab="tasks">
+                <span class="tab-icon">📋</span>
+                <span>Tasks</span>
+                <span id="taskBadge" class="tab-badge" style="display:none;">0</span>
+            </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+
+            <!-- Code Improvements Tab -->
+            <div id="code-improvements" class="tab-panel active">
+                <div class="panel-section">
+                    <h2>Project Selection</h2>
+                    <div class="project-selector">
+                        <select id="codeProjectSelect" class="form-control">
+                            <option value="">Select a project...</option>
+                        </select>
+                        <button id="refreshProjectsBtn" class="btn btn-secondary" title="Refresh projects">🔄</button>
+                    </div>
+                </div>
+
+                <!-- Project Files Browser -->
+                <div class="panel-section" id="filesSection" style="display:none;">
+                    <h2>Project Files</h2>
+                    <div class="files-browser">
+                        <div class="files-toolbar">
+                            <input type="text" id="filesSearchInput" class="form-control files-search" placeholder="🔍 Search files...">
+                            <label class="files-select-all">
+                                <input type="checkbox" id="selectAllFilesCheckbox">\ Select All
+                            </label>
+                            <span id="selectedFilesCount" class="selected-count">0 selected</span>
+                        </div>
+                        <div id="filesList" class="files-list"></div>
+                    </div>
+                    <div class="selected-files-panel">
+                        <h3>Selected Files for Analysis</h3>
+                        <div id="selectedFilesList" class="selected-files-list">
+                            <span class="empty-hint">No files selected. Click files above to add them.</span>
+                        </div>
+                        <button id="clearSelectedFilesBtn" class="btn btn-secondary btn-small">Clear All</button>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h2>Analysis Actions</h2>
+                    <div class="action-grid">
+                        <button id="bugDetectBtn" class="action-card" disabled>
+                            <span class="action-icon">🐛</span>
+                            <span class="action-title">Bug Detection</span>
+                            <span class="action-desc">Find potential bugs in your code</span>
+                        </button>
+                        <button id="codeReviewBtn" class="action-card" disabled>
+                            <span class="action-icon">📋</span>
+                            <span class="action-title">Code Review</span>
+                            <span class="action-desc">Get AI-powered code review</span>
+                        </button>
+                        <button id="codeGenBtn" class="action-card" disabled>
+                            <span class="action-icon">⚡</span>
+                            <span class="action-title">Code Generation</span>
+                            <span class="action-desc">Generate code from description</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h2>Results</h2>
+                    <div id="codeResults" class="results-container">
+                        <div class="results-placeholder">
+                            <span class="placeholder-icon">🔍</span>
+                            <p>Select a project and choose an analysis action to get started.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Analysis Tab -->
+            <div id="game-analysis" class="tab-panel">
+                <div class="panel-section">
+                    <h2>Game Strategy Insights</h2>
+                    <div class="action-grid">
+                        <button id="strategyAnalysisBtn" class="action-card">
+                            <span class="action-icon">🧠</span>
+                            <span class="action-title">Strategy Analysis</span>
+                            <span class="action-desc">Get AI strategy recommendations</span>
+                        </button>
+                        <button id="trainingStatusBtn" class="action-card">
+                            <span class="action-icon">📊</span>
+                            <span class="action-title">Training Status</span>
+                            <span class="action-desc">View DL model training progress</span>
+                        </button>
+                        <button id="gameReviewBtn" class="action-card">
+                            <span class="action-icon">🎯</span>
+                            <span class="action-title">Game Review</span>
+                            <span class="action-desc">Analyze recent game performance</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h2>Analysis Results</h2>
+                    <div id="gameResults" class="results-container">
+                        <div class="results-placeholder">
+                            <span class="placeholder-icon">🎮</span>
+                            <p>Choose an analysis action to get game insights.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Chat Tab -->
+            <div id="chat" class="tab-panel">
+                <div class="chat-container">
+                    <div id="chatMessages" class="chat-messages">
+                        <div class="message system-message">
+                            <div class="message-content">
+                                <p>Welcome to Dora AI! Ask me about code improvements or game strategy.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-input-area">
+                        <textarea id="chatInput" class="chat-input" placeholder="Type your message..." rows="2"></textarea>
+                        <button id="chatSendBtn" class="btn btn-primary">Send</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tasks Tab -->
+            <div id="tasks" class="tab-panel">
+                <div class="tasks-container">
+                    <!-- Task Header -->
+                    <div class="tasks-header">
+                        <h2>📋 Dora AI Tasks</h2>
+                        <div class="tasks-actions">
+                            <button id="refreshTasksBtn" class="btn btn-secondary btn-small" title="Refresh tasks">🔄 Refresh</button>
+                            <button id="clearCompletedTasksBtn" class="btn btn-secondary btn-small" title="Clear completed tasks">🗑️ Clear Done</button>
+                        </div>
+                    </div>
+
+                    <!-- Task Filters -->
+                    <div class="tasks-filters">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn" data-filter="PENDING">Pending</button>
+                        <button class="filter-btn" data-filter="ACCEPTED">Accepted</button>
+                        <button class="filter-btn" data-filter="IN_PROGRESS">In Progress</button>
+                        <button class="filter-btn" data-filter="COMPLETED">Completed</button>
+                        <button class="filter-btn" data-filter="DECLINED">Declined</button>
+                    </div>
+
+                    <!-- Task Counts -->
+                    <div class="tasks-counts" id="tasksCounts">
+                        <span class="count-badge">Loading...</span>
+                    </div>
+
+                    <!-- Task List -->
+                    <div id="taskList" class="task-list">
+                        <div class="tasks-placeholder">
+                            <span class="placeholder-icon">📋</span>
+                            <p>No tasks yet. Dora AI will send you tasks here.</p>
+                        </div>
+                    </div>
+
+                    <!-- Task Detail Panel -->
+                    <div id="taskDetailPanel" class="task-detail-panel" style="display:none;">
+                        <div class="task-detail-header">
+                            <h3 id="taskDetailTitle">Task Details</h3>
+                            <button id="closeTaskDetailBtn" class="btn-close-small">&times;</button>
+                        </div>
+                        <div class="task-detail-body">
+                            <div class="task-detail-field">
+                                <label>Type:</label>
+                                <span id="taskDetailType">-</span>
+                            </div>
+                            <div class="task-detail-field">
+                                <label>Priority:</label>
+                                <span id="taskDetailPriority">-</span>
+                            </div>
+                            <div class="task-detail-field">
+                                <label>Status:</label>
+                                <span id="taskDetailStatus">-</span>
+                            </div>
+                            <div class="task-detail-field">
+                                <label>Source:</label>
+                                <span id="taskDetailSource">-</span>
+                            </div>
+                            <div class="task-detail-field">
+                                <label>Created:</label>
+                                <span id="taskDetailCreated">-</span>
+                            </div>
+                            <div class="task-detail-field task-description">
+                                <label>Description:</label>
+                                <p id="taskDetailDescription">-</p>
+                            </div>
+                            <div class="task-detail-field">
+                                <label>Your Note:</label>
+                                <textarea id="taskDetailNote" class="form-control" placeholder="Add a note..." rows="2"></textarea>
+                            </div>
+                        </div>
+                        <div id="taskDetailProcessingStatus" class="task-detail-status" style="display:none;">
+                            <span class="status-spinner"></span>
+                            <span id="taskDetailProcessingText" class="status-text"></span>
+                        </div>
+                        <div class="task-detail-footer">
+                            <button id="taskDetailAcceptBtn" class="btn btn-secondary">Accept</button>
+                            <button id="taskDetailStartBtn" class="btn btn-secondary">Start</button>
+                            <button id="taskDetailCompleteBtn" class="btn btn-primary">Complete</button>
+                            <button id="taskDetailDeclineBtn" class="btn btn-secondary">Decline</button>
+                            <button id="taskDetailSaveNoteBtn" class="btn btn-secondary">Save Note</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Panels -->
+        <div class="status-panels-section">
+            <!-- Task Status Panel -->
+            <div class="status-panel" id="taskStatusPanel">
+                <div class="status-panel-header" id="taskStatusPanelHeader">
+                    <span class="status-panel-icon">📋</span>
+                    <span class="status-panel-title">Task Status</span>
+                    <span class="status-panel-count" id="taskStatusCount">0</span>
+                    <button class="status-panel-clear" id="clearTaskStatusBtn" title="Clear log">🗑️</button>
+                    <button class="status-panel-toggle" id="taskStatusToggleBtn" title="Collapse/Expand">▼</button>
+                </div>
+                <div class="status-panel-body" id="taskStatusBody">
+                    <div class="status-log-empty">No task activity yet.</div>
+                </div>
+            </div>
+
+            <!-- Ollama Communications Panel -->
+            <div class="status-panel" id="ollamaStatusPanel">
+                <div class="status-panel-header" id="ollamaStatusPanelHeader">
+                    <span class="status-panel-icon">🔌</span>
+                    <span class="status-panel-title">Ollama Communications</span>
+                    <span class="status-panel-count" id="ollamaStatusCount">0</span>
+                    <button class="status-panel-clear" id="clearOllamaStatusBtn" title="Clear log">🗑️</button>
+                    <button class="status-panel-toggle" id="ollamaStatusToggleBtn" title="Collapse/Expand">▼</button>
+                </div>
+                <div class="status-panel-body" id="ollamaStatusBody">
+                    <div class="status-log-empty">No communication activity yet.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="modal-footer">
+            <span class="footer-text">DoraMCU Server: <span id="doraMcuServerDisplay">localhost:8080</span></span>
+            <span class="footer-text" style="margin-left: 20px;">Ollama Server: <span id="ollamaServerDisplay">localhost:11434</span></span>
+            <span class="footer-text" style="margin-left: 20px;">Dora AI Server: <span id="serverUrlDisplay">localhost:8081</span></span>
+            <button id="skipBtn" class="btn btn-secondary">Skip for now</button>
+        </div>
+    </div>
+
+    <!-- Analysis Dialog Modal -->
+    <div id="analysisDialog" class="dialog-overlay">
+        <div class="dialog-content">
+            <div class="dialog-header">
+                <h3 id="dialogTitle">Analysis</h3>
+                <button class="dialog-close">&times;</button>
+            </div>
+            <div class="dialog-body">
+                <div class="form-group">
+                    <label for="analysisDescription">Description</label>
+                    <textarea id="analysisDescription" class="form-control" placeholder="Describe what you want to analyze..." rows="3"></textarea>
+                </div>
+                <div class="form-group" id="filePathsGroup" style="display:none;">
+                    <label for="analysisFilePaths">File Paths (comma-separated, optional)</label>
+                    <input type="text" id="analysisFilePaths" class="form-control" placeholder="e.g., src/main/java/...">
+                </div>
+            </div>
+            <div class="dialog-footer">
+                <button id="dialogCancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="dialogConfirmBtn" class="btn btn-primary">Start Analysis</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/dora-ai-modal.js"></script>
+</body>
+</html>

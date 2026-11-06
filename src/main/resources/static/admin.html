@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DoraMCU - Server Administration</title>
+    <link rel="stylesheet" href="css/game.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <style>
+        /* Login gate - full screen overlay before authentication */
+        #loginGate {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 50%, #0a0e27 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        #loginGate .login-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        #loginGate .login-card h2 {
+            color: #fff;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        #loginGate .login-card .login-subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            margin-bottom: 32px;
+            font-size: 0.9rem;
+        }
+        #loginGate .login-card .form-label {
+            color: rgba(255, 255, 255, 0.8);
+        }
+        #loginGate .login-card .form-control {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border-radius: 8px;
+            padding: 10px 14px;
+        }
+        #loginGate .login-card .form-control:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.4);
+            color: #fff;
+            box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.15);
+        }
+        #loginGate .login-card .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+        #loginGate .login-card .btn-login {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: #fff;
+            font-weight: 600;
+            font-size: 1rem;
+            margin-top: 8px;
+        }
+        #loginGate .login-card .btn-login:hover {
+            background: linear-gradient(135deg, #5a6fd6 0%, #6a4296 100%);
+        }
+        #loginGate .login-card .login-error {
+            background: rgba(220, 53, 69, 0.2);
+            border: 1px solid rgba(220, 53, 69, 0.4);
+            color: #f8d7da;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+            display: none;
+        }
+        #loginGate .login-card .login-hint {
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 0.8rem;
+            text-align: center;
+            margin-top: 16px;
+        }
+        /* Hide main dashboard until authenticated */
+        #adminDashboard {
+            display: none;
+        }
+        /* Header with logout button (shown after login) */
+        .admin-header .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .admin-header .user-info .username {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Gate - Full screen authentication required -->
+    <div id="loginGate">
+        <div class="login-card">
+            <h2><i class="bi bi-gear-wide-connected"></i> DoraMCU Administration</h2>
+            <p class="login-subtitle">Authentication required to access admin panel</p>
+            <div id="loginError" class="login-error"></div>
+            <form id="loginForm">
+                <div class="mb-3">
+                    <label for="loginUsername" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="loginUsername" placeholder="Enter your username" required autocomplete="username">
+                </div>
+                <div class="mb-3">
+                    <label for="loginPassword" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="loginPassword" placeholder="Enter your password" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-login">
+                    <i class="bi bi-box-arrow-in-right"></i> Login to Admin Panel
+                </button>
+            </form>
+            <p class="login-hint">Default admin: <strong>Butch Younger</strong> / <strong>3214</strong></p>
+        </div>
+    </div>
+
+    <!-- Admin Dashboard - Hidden until authenticated -->
+    <div id="adminDashboard">
+        <!-- Header -->
+        <div class="admin-header">
+            <div class="container">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="mb-0"><i class="bi bi-gear-wide-connected"></i> DoraMCU Administration</h1>
+                        <p class="mb-0 opacity-75">Web Server Management Dashboard</p>
+                    </div>
+                    <div class="user-info">
+                        <span class="username" id="loggedInUser"></span>
+                        <button class="btn btn-outline-light btn-sm" onclick="handleLogout()">
+                            <i class="bi bi-box-arrow-right"></i> Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="container">
+            <!-- Admin Cards -->
+            <div class="row">
+                <div class="col-md-6 col-lg-3">
+                    <div class="card admin-card" onclick="openServerStatus()">
+                        <div class="card-body">
+                            <div class="icon text-primary">
+                                <i class="bi bi-speedometer2"></i>
+                            </div>
+                            <h5 class="card-title">Server Status</h5>
+                            <p class="card-text text-muted">Monitor server health, memory, and CPU usage</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="card admin-card" onclick="openDeviceManagement()">
+                        <div class="card-body">
+                            <div class="icon text-success">
+                                <i class="bi bi-hdd-stack"></i>
+                            </div>
+                            <h5 class="card-title">Device Management</h5>
+                            <p class="card-text text-muted">Create, update, and manage devices</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="card admin-card" onclick="openUserManagement()">
+                        <div class="card-body">
+                            <div class="icon text-warning">
+                                <i class="bi bi-people"></i>
+                            </div>
+                            <h5 class="card-title">User Management</h5>
+                            <p class="card-text text-muted">Manage user accounts and permissions</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="card admin-card" onclick="openServerConfig()">
+                        <div class="card-body">
+                            <div class="icon text-info">
+                                <i class="bi bi-sliders"></i>
+                            </div>
+                            <h5 class="card-title">Server Configuration</h5>
+                            <p class="card-text text-muted">View and modify server settings</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="card admin-card" onclick="openGalaxyManagement()">
+                        <div class="card-body">
+                            <div class="icon text-danger">
+                                <i class="bi bi-globe2"></i>
+                            </div>
+                            <h5 class="card-title">Galaxy Management</h5>
+                            <p class="card-text text-muted">View and rebuild game galaxies</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="card admin-card" onclick="openTurnManagement()">
+                        <div class="card-body">
+                            <div class="icon text-warning">
+                                <i class="bi bi-clock-history"></i>
+                            </div>
+                            <h5 class="card-title">Turn Management</h5>
+                            <p class="card-text text-muted">Control game turn timing</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Card -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card admin-card" onclick="openLogsViewer()">
+                        <div class="card-body">
+                            <div class="icon text-dark">
+                                <i class="bi bi-file-earmark-text"></i>
+                            </div>
+                            <h5 class="card-title">System Logs</h5>
+                            <p class="card-text text-muted">View real-time application logs</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Server Status Modal -->
+    <div class="modal" id="serverStatusModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Server Status</h5>
+                    <button type="button" class="btn-close btn-close-white" onclick="closeModal('serverStatusModal')">&times;</button>
+                </div>
+                <div class="modal-body" id="serverStatusContent">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3">Loading server status...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device Management Modal -->
+    <div class="modal" id="deviceManagementModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Device Management</h5>
+                    <button type="button" class="btn-close btn-close-white" onclick="closeModal('deviceManagementModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <h6 class="mb-0">Devices</h6>
+                        <button class="btn btn-sm btn-success" onclick="showAddDeviceForm()">
+                            <i class="bi bi-plus-lg"></i> Add Device
+                        </button>
+                    </div>
+                    <div id="deviceFormContainer" style="display: none;">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title" id="deviceFormTitle">Add New Device</h6>
+                                <form id="deviceForm">
+                                    <input type="hidden" id="deviceId">
+                                    <div class="mb-3">
+                                        <label for="deviceName" class="form-label">Name</label>
+                                        <input type="text" class="form-control" id="deviceName" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="deviceStatus" class="form-label">Status</label>
+                                        <select class="form-select" id="deviceStatus">
+                                            <option value="active">Active</option>
+                                            <option value="inactive">Inactive</option>
+                                            <option value="maintenance">Maintenance</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="deviceLocation" class="form-label">Location</label>
+                                        <input type="text" class="form-control" id="deviceLocation">
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn btn-success">Save</button>
+                                        <button type="button" class="btn btn-secondary" onclick="hideDeviceForm()">Cancel</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <div id="devicesTableContainer">
+                            <div class="text-center py-5">
+                                <div class="spinner-border text-success" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading devices...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Management Modal -->
+    <div class="modal" id="userManagementModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title">User Management</h5>
+                    <button type="button" class="btn-close" onclick="closeModal('userManagementModal')">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between mb-3">
+                        <h6 class="mb-0">Users</h6>
+                        <button class="btn btn-sm btn-warning text-dark" onclick="showAddUserForm()">
+                            <i class="bi bi-plus-lg"></i> Add User
+                        </button>
+                    </div>
+                    <div id="userFormContainer" style="display: none;">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h6 class="card-title">Add New User</h6>
+                                <form id="userForm">
+                                    <div class="mb-3">
+                                        <label for="username" class="form-label">Username</label>
+                                        <input type="text" class="form-control" id="username" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="password" class="form-label">Password</label>
+                                        <input type="password" class="form-control" id="password" required>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" class="btn btn-warning text-dark">Create User</button>
+                                        <button type="button" class="btn btn-secondary" onclick="hideUserForm()">Cancel</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <div id="usersTableContainer">
+                            <div class="text-center py-5">
+                                <div class="spinner-border text-warning" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-3">Loading users...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Server Configuration Modal -->
+    <div class="modal" id="serverConfigModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">Server Configuration</h5>
+                    <button type="button" class="btn-close btn-close-white" onclick="closeModal('serverConfigModal')">&times;</button>
+                </div>
+                <div class="modal-body" id="serverConfigContent">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-info" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3">Loading configuration...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Galaxy Management Modal -->
+    <div class="modal" id="galaxyManagementModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Galaxy Management</h5>
+                    <button type="button" class="btn-close btn-close-white" onclick="closeModal('galaxyManagementModal')">&times;</button>
+                </div>
+                <div class="modal-body" id="galaxyManagementContent">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-danger" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3">Loading galaxies...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Turn Management Modal -->
+    <div class="modal" id="turnManagementModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title">Turn Management</h5>
+                    <div>
+                        <button class="btn btn-sm btn-outline-dark me-2" onclick="loadTurnStatus()">Refresh</button>
+                        <button type="button" class="btn-close" onclick="closeModal('turnManagementModal')">&times;</button>
+                    </div>
+                </div>
+                <div class="modal-body" id="turnManagementContent">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-warning" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3">Loading turn status...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logs Viewer Modal -->
+    <div class="modal" id="logsViewerModal">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">System Logs</h5>
+                    <div>
+                        <button class="btn btn-sm btn-outline-light me-2" onclick="refreshLogs()">Refresh</button>
+                        <button type="button" class="btn-close btn-close-white" onclick="closeModal('logsViewerModal')">&times;</button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="logLines" class="form-label">Number of lines</label>
+                        <select class="form-select w-auto" id="logLines" onchange="refreshLogs()">
+                            <option value="50">50 lines</option>
+                            <option value="100" selected>100 lines</option>
+                            <option value="200">200 lines</option>
+                            <option value="500">500 lines</option>
+                        </select>
+                    </div>
+                    <div class="log-container" id="logsContent">
+                        <div class="text-center py-5 text-muted">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-3">Loading logs...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="toastNotification" class="toast align-items-center text-white border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage"></div>
+                <button type="button" class="btn-close btn-close-white me-2" onclick="this.parentElement.parentElement.classList.remove('show')">&times;</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Authentication state
+        let authToken = null;
+        let loggedUsername = null;
+
+        // Simple modal system
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop';
+            backdrop.id = id + '-backdrop';
+            modal.classList.add('show');
+            document.body.appendChild(backdrop);
+            document.body.style.overflow = 'hidden';
+            backdrop.addEventListener('click', () => closeModal(id));
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            const backdrop = document.getElementById(id + '-backdrop');
+            modal.classList.remove('show');
+            if (backdrop) backdrop.remove();
+            document.body.style.overflow = '';
+        }
+
+        // Show login gate and hide dashboard
+        function showLoginGate() {
+            document.getElementById('loginGate').style.display = 'flex';
+            document.getElementById('adminDashboard').style.display = 'none';
+        }
+
+        // Hide login gate and show dashboard
+        function showDashboard(username) {
+            document.getElementById('loginGate').style.display = 'none';
+            document.getElementById('adminDashboard').style.display = 'block';
+            if (username) {
+                document.getElementById('loggedInUser').textContent = 'Logged in as: ' + username;
+            }
+        }
+
+        // Check admin rights against server
+        async function checkAdminRights(token) {
+            try {
+                const response = await fetch('/api/v1/admin/check-admin', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.isAdmin === true;
+                }
+                return false;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // Show access denied message
+        function showAccessDenied() {
+            document.getElementById('loginGate').style.display = 'none';
+            document.getElementById('adminDashboard').style.display = 'none';
+            const errorEl = document.getElementById('loginError');
+            errorEl.textContent = 'Access denied: Admin rights required to view this panel.';
+            errorEl.style.display = 'block';
+            document.getElementById('loginGate').style.display = 'flex';
+        }
+
+        // Check authentication on page load
+        async function checkAuthOnLoad() {
+            const storedToken = localStorage.getItem('authToken');
+            const storedUsername = localStorage.getItem('adminUsername');
+
+            if (storedToken) {
+                const hasAdminRights = await checkAdminRights(storedToken);
+                if (hasAdminRights) {
+                    authToken = storedToken;
+                    loggedUsername = storedUsername || 'Admin';
+                    showDashboard(loggedUsername);
+                    return;
+                } else {
+                    // Token valid but no admin rights, or token expired
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('adminUsername');
+                }
+            }
+            // No valid token — show login gate
+            showLoginGate();
+        }
+
+        // Handle logout
+        function handleLogout() {
+            authToken = null;
+            loggedUsername = null;
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('adminUsername');
+            showLoginGate();
+            document.getElementById('loginUsername').value = '';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('loginError').style.display = 'none';
+            showToast('Logged out successfully', 'info');
+        }
+
+        // Login form submission
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorEl = document.getElementById('loginError');
+
+            try {
+                const response = await fetch('/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    authToken = data.token;
+                    loggedUsername = data.username || username;
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('adminUsername', loggedUsername);
+                    
+                    // Check if user has admin rights
+                    const hasAdminRights = await checkAdminRights(authToken);
+                    if (hasAdminRights || data.isAdmin) {
+                        showDashboard(loggedUsername);
+                        showToast('Login successful! Welcome, ' + loggedUsername, 'success');
+                    } else {
+                        // Login succeeded but no admin rights
+                        localStorage.removeItem('authToken');
+                        localStorage.removeItem('adminUsername');
+                        authToken = null;
+                        loggedUsername = null;
+                        errorEl.textContent = 'Access denied: Admin rights required to view this panel.';
+                        errorEl.style.display = 'block';
+                    }
+                } else {
+                    let errorMsg = 'Login failed. Please check your credentials.';
+                    try {
+                        const error = await response.json();
+                        errorMsg = error.message || errorMsg;
+                    } catch (_) {}
+                    errorEl.textContent = errorMsg;
+                    errorEl.style.display = 'block';
+                }
+            } catch (error) {
+                errorEl.textContent = 'Network error. Could not connect to server.';
+                errorEl.style.display = 'block';
+            }
+        });
+
+        function getAuthHeaders() {
+            if (!authToken) {
+                showLoginGate();
+                throw new Error('Not authenticated');
+            }
+            return { 'Authorization': `Bearer ${authToken}` };
+        }
+
+        // Initialize authentication check on page load
+        document.addEventListener('DOMContentLoaded', checkAuthOnLoad);
+
+        // Toast notification
+        function showToast(message, type = 'success') {
+            const toastEl = document.getElementById('toastNotification');
+            const toastBody = document.getElementById('toastMessage');
+            toastEl.className = `toast show bg-${type}`;
+            toastBody.textContent = message;
+            setTimeout(() => toastEl.classList.remove('show'), 3000);
+        }
+
+        // Server Status
+        async function openServerStatus() {
+            openModal('serverStatusModal');
+            await loadServerStatus();
+        }
+
+        async function loadServerStatus() {
+            try {
+                const response = await fetch('/api/v1/admin/server/status', { headers: getAuthHeaders() });
+                const data = await response.json();
+
+                const memoryPercent = parseFloat(data.memory.heapPercent);
+                const memoryUsedMB = (data.memory.heapUsed / 1024 / 1024).toFixed(1);
+                const memoryMaxMB = (data.memory.heapMax / 1024 / 1024).toFixed(1);
+
+                document.getElementById('serverStatusContent').innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-clock"></i> Uptime</h6>
+                            <p class="lead">${data.uptime}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-cpu"></i> CPU Cores</h6>
+                            <p class="lead">${data.cpuCores} cores (Load: ${data.loadAverage.toFixed(2)})</p>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6><i class="bi bi-memory"></i> Memory Usage</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Heap: ${memoryUsedMB} MB / ${memoryMaxMB} MB</span>
+                                <span>${memoryPercent}%</span>
+                            </div>
+                            <div class="progress memory-bar">
+                                <div class="progress-bar bg-primary" role="progressbar" 
+                                     style="width: ${memoryPercent}%">${memoryPercent}%</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <div class="stat-card">
+                                <div class="stat-value">${data.serverPort}</div>
+                                <div class="stat-label">Server Port</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="stat-card">
+                                <div class="stat-value">${data.javaVersion}</div>
+                                <div class="stat-label">Java Version</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="stat-card">
+                                <div class="stat-value">${data.userCount}</div>
+                                <div class="stat-label">Users</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <div class="stat-card">
+                                <div class="stat-value">${data.osName}</div>
+                                <div class="stat-label">Operating System ${data.osVersion}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('serverStatusContent').innerHTML = `
+                    <div class="alert alert-danger">Failed to load server status. Please login first.</div>
+                `;
+            }
+        }
+
+        // Device Management
+        let devices = [];
+
+        async function openDeviceManagement() {
+            openModal('deviceManagementModal');
+            await loadDevices();
+        }
+
+        async function loadDevices() {
+            try {
+                const response = await fetch('/api/v1/devices', { headers: getAuthHeaders() });
+                devices = await response.json();
+                renderDevicesTable();
+            } catch (error) {
+                document.getElementById('devicesTableContainer').innerHTML = `
+                    <div class="alert alert-danger">Failed to load devices. Please login first.</div>
+                `;
+            }
+        }
+
+        function renderDevicesTable() {
+            if (devices.length === 0) {
+                document.getElementById('devicesTableContainer').innerHTML = `
+                    <div class="text-center py-4 text-muted">No devices found. Add your first device!</div>
+                `;
+                return;
+            }
+
+            const statusColors = {
+                'active': 'success',
+                'inactive': 'secondary',
+                'maintenance': 'warning'
+            };
+
+            let html = `
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Location</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            devices.forEach(device => {
+                const color = statusColors[device.status] || 'secondary';
+                html += `
+                    <tr>
+                        <td>${device.id}</td>
+                        <td>${device.name}</td>
+                        <td><span class="badge bg-${color}">${device.status}</span></td>
+                        <td>${device.location || '-'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="editDevice(${device.id})">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteDevice(${device.id})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            document.getElementById('devicesTableContainer').innerHTML = html;
+        }
+
+        function showAddDeviceForm() {
+            document.getElementById('deviceFormContainer').style.display = 'block';
+            document.getElementById('deviceFormTitle').textContent = 'Add New Device';
+            document.getElementById('deviceForm').reset();
+            document.getElementById('deviceId').value = '';
+        }
+
+        function hideDeviceForm() {
+            document.getElementById('deviceFormContainer').style.display = 'none';
+        }
+
+        function editDevice(id) {
+            const device = devices.find(d => d.id === id);
+            if (!device) return;
+
+            document.getElementById('deviceFormContainer').style.display = 'block';
+            document.getElementById('deviceFormTitle').textContent = 'Edit Device';
+            document.getElementById('deviceId').value = device.id;
+            document.getElementById('deviceName').value = device.name;
+            document.getElementById('deviceStatus').value = device.status;
+            document.getElementById('deviceLocation').value = device.location || '';
+        }
+
+        document.getElementById('deviceForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('deviceId').value;
+            const deviceData = {
+                name: document.getElementById('deviceName').value,
+                status: document.getElementById('deviceStatus').value,
+                location: document.getElementById('deviceLocation').value
+            };
+
+            try {
+                let response;
+                if (id) {
+                    response = await fetch(`/api/v1/devices/${id}`, {
+                        method: 'PUT',
+                        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                        body: JSON.stringify(deviceData)
+                    });
+                } else {
+                    response = await fetch('/api/v1/devices', {
+                        method: 'POST',
+                        headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                        body: JSON.stringify(deviceData)
+                    });
+                }
+
+                if (response.ok) {
+                    showToast(id ? 'Device updated!' : 'Device created!', 'success');
+                    hideDeviceForm();
+                    await loadDevices();
+                }
+            } catch (error) {
+                showToast('Failed to save device', 'danger');
+            }
+        });
+
+        async function deleteDevice(id) {
+            if (!confirm('Are you sure you want to delete this device?')) return;
+
+            try {
+                const response = await fetch(`/api/v1/devices/${id}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+
+                if (response.ok) {
+                    showToast('Device deleted!', 'success');
+                    await loadDevices();
+                }
+            } catch (error) {
+                showToast('Failed to delete device', 'danger');
+            }
+        }
+
+        // User Management
+        let users = [];
+
+        async function openUserManagement() {
+            openModal('userManagementModal');
+            await loadUsers();
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/v1/admin/users', { headers: getAuthHeaders() });
+                users = await response.json();
+                renderUsersTable();
+            } catch (error) {
+                document.getElementById('usersTableContainer').innerHTML = `
+                    <div class="alert alert-danger">Failed to load users. Please login first.</div>
+                `;
+            }
+        }
+
+        function renderUsersTable() {
+            if (users.length === 0) {
+                document.getElementById('usersTableContainer').innerHTML = `
+                    <div class="text-center py-4 text-muted">No users found. Add your first user!</div>
+                `;
+                return;
+            }
+
+            let html = `
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            users.forEach(user => {
+                html += `
+                    <tr>
+                        <td>${user.id}</td>
+                        <td>${user.username}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id})">
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            document.getElementById('usersTableContainer').innerHTML = html;
+        }
+
+        function showAddUserForm() {
+            document.getElementById('userFormContainer').style.display = 'block';
+            document.getElementById('userForm').reset();
+        }
+
+        function hideUserForm() {
+            document.getElementById('userFormContainer').style.display = 'none';
+        }
+
+        document.getElementById('userForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userData = {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value
+            };
+
+            try {
+                const response = await fetch('/api/v1/admin/users', {
+                    method: 'POST',
+                    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    showToast('User created!', 'success');
+                    hideUserForm();
+                    await loadUsers();
+                } else {
+                    showToast(data.error || 'Failed to create user', 'danger');
+                }
+            } catch (error) {
+                showToast('Failed to create user', 'danger');
+            }
+        });
+
+        async function deleteUser(id) {
+            if (!confirm('Are you sure you want to delete this user?')) return;
+
+            try {
+                const response = await fetch(`/api/v1/admin/users/${id}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+
+                if (response.ok) {
+                    showToast('User deleted!', 'success');
+                    await loadUsers();
+                }
+            } catch (error) {
+                showToast('Failed to delete user', 'danger');
+            }
+        }
+
+        // Server Configuration
+        async function openServerConfig() {
+            openModal('serverConfigModal');
+            await loadServerConfig();
+        }
+
+        async function loadServerConfig() {
+            try {
+                const response = await fetch('/api/v1/admin/config', { headers: getAuthHeaders() });
+                const config = await response.json();
+
+                document.getElementById('serverConfigContent').innerHTML = `
+                    <div class="config-item">
+                        <div class="config-label"><i class="bi bi-hdd"></i> Application Name</div>
+                        <div class="config-value">${config.appName}</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label"><i class="bi bi-tag"></i> Version</div>
+                        <div class="config-value">${config.appVersion}</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label"><i class="bi bi-plug"></i> Server Port</div>
+                        <div class="config-value">${config.serverPort}</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label"><i class="bi bi-database"></i> Database</div>
+                        <div class="config-value">${config.databaseUrl}</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label"><i class="bi bi-lightning"></i> Cache Type</div>
+                        <div class="config-value">${config.cacheType}</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label"><i class="bi bi-file-earmark-text"></i> Log File</div>
+                        <div class="config-value">${config.logFileName}</div>
+                    </div>
+                    <div class="config-item">
+                        <div class="config-label"><i class="bi bi-volume-up"></i> Logging Level</div>
+                        <div class="d-flex align-items-center gap-2">
+                            <select class="form-select form-select-sm w-auto" id="loggingLevel">
+                                <option value="TRACE" ${config.loggingLevel === 'TRACE' ? 'selected' : ''}>TRACE</option>
+                                <option value="DEBUG" ${config.loggingLevel === 'DEBUG' ? 'selected' : ''}>DEBUG</option>
+                                <option value="INFO" ${config.loggingLevel === 'INFO' ? 'selected' : ''}>INFO</option>
+                                <option value="WARN" ${config.loggingLevel === 'WARN' ? 'selected' : ''}>WARN</option>
+                                <option value="ERROR" ${config.loggingLevel === 'ERROR' ? 'selected' : ''}>ERROR</option>
+                            </select>
+                            <button class="btn btn-sm btn-info text-white" onclick="updateLogLevel()">Update</button>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('serverConfigContent').innerHTML = `
+                    <div class="alert alert-danger">Failed to load configuration. Please login first.</div>
+                `;
+            }
+        }
+
+        async function updateLogLevel() {
+            const level = document.getElementById('loggingLevel').value;
+            try {
+                const response = await fetch('/api/v1/admin/config/logging-level', {
+                    method: 'PUT',
+                    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ level })
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    showToast(data.message, 'success');
+                } else {
+                    showToast(data.error || 'Failed to update log level', 'danger');
+                }
+            } catch (error) {
+                showToast('Failed to update log level', 'danger');
+            }
+        }
+
+        // Galaxy Management
+        async function openGalaxyManagement() {
+            openModal('galaxyManagementModal');
+            await loadGalaxies();
+        }
+
+        async function loadGalaxies() {
+            try {
+                const response = await fetch('/api/v1/admin/galaxies', { headers: getAuthHeaders() });
+                const galaxies = await response.json();
+
+                if (galaxies && galaxies.length > 0) {
+                    let html = '<div class="alert alert-info"><i class="bi bi-info-circle"></i> Galaxies are generated once at startup and persisted in the database. Use the buttons below to rebuild them.</div>';
+                    html += '<div class="table-responsive"><table class="table table-striped"><thead><tr><th>Name</th><th>Sectors</th><th>Solar Systems</th><th>Hyperlane Density</th><th>Actions</th></tr></thead><tbody>';
+                    galaxies.forEach(g => {
+                        html += `<tr>
+                            <td><strong>${escapeHtml(g.name)}</strong></td>
+                            <td>${g.totalSectors}</td>
+                            <td>${g.solarSystems}</td>
+                            <td>${g.hyperlaneDensity}</td>
+                            <td><button class="btn btn-sm btn-danger" onclick="rebuildGalaxy('${escapeHtml(g.name)}')">Rebuild</button></td>
+                        </tr>`;
+                    });
+                    html += '</tbody></table></div>';
+                    html += '<div class="mt-3"><button class="btn btn-danger" onclick="rebuildAllGalaxies()">Rebuild All Galaxies</button></div>';
+                    document.getElementById('galaxyManagementContent').innerHTML = html;
+                } else {
+                    document.getElementById('galaxyManagementContent').innerHTML = `
+                        <div class="text-center text-muted py-4">
+                            <p>No galaxies found. Galaxies will be generated automatically at startup.</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('galaxyManagementContent').innerHTML = `
+                    <div class="alert alert-danger">Failed to load galaxies. Please login first.</div>
+                `;
+            }
+        }
+
+        async function rebuildGalaxy(name) {
+            if (!confirm(`Are you sure you want to rebuild galaxy "${name}"? This will delete and regenerate all data.`)) {
+                return;
+            }
+            try {
+                const response = await fetch('/api/v1/admin/galaxies/rebuild', {
+                    method: 'POST',
+                    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ galaxies: [name] })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    showToast(data.message, 'success');
+                    await loadGalaxies();
+                } else {
+                    showToast(data.error || 'Failed to rebuild galaxy', 'danger');
+                }
+            } catch (error) {
+                showToast('Failed to rebuild galaxy', 'danger');
+            }
+        }
+
+        async function rebuildAllGalaxies() {
+            if (!confirm('Are you sure you want to rebuild ALL galaxies? This will delete and regenerate all galaxy data.')) {
+                return;
+            }
+            try {
+                const response = await fetch('/api/v1/admin/galaxies/rebuild', {
+                    method: 'POST',
+                    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    showToast(data.message, 'success');
+                    await loadGalaxies();
+                } else {
+                    showToast(data.error || 'Failed to rebuild galaxies', 'danger');
+                }
+            } catch (error) {
+                showToast('Failed to rebuild galaxies', 'danger');
+            }
+        }
+
+        // Turn Management
+        async function openTurnManagement() {
+            openModal('turnManagementModal');
+            await loadTurnStatus();
+        }
+
+        async function loadTurnStatus() {
+            try {
+                const response = await fetch('/api/v1/admin/turn/status', { headers: getAuthHeaders() });
+                const data = await response.json();
+
+                let html = '';
+
+                // Scheduler controls
+                html += '<div class="row mb-4">';
+                html += '<div class="col-md-6">';
+                html += '<div class="card">';
+                html += '<div class="card-body">';
+                html += '<h6 class="card-title">Scheduler Controls</h6>';
+                html += `<p class="mb-2">Status: <span class="badge ${data.enabled ? 'bg-success' : 'bg-secondary'}">${data.enabled ? 'Running' : 'Stopped'}</span></p>`;
+                html += `<p class="mb-3">Turn Interval: <strong>${data.turnIntervalSeconds}</strong> seconds</p>`;
+                html += '<div class="d-flex gap-2 flex-wrap">';
+                html += `<button class="btn btn-sm ${data.enabled ? 'btn-warning' : 'btn-success'}" onclick="toggleScheduler(${!data.enabled})">${data.enabled ? 'Stop Scheduler' : 'Start Scheduler'}</button>`;
+                html += '</div>';
+                html += '</div></div></div>';
+
+                // Turn interval setting
+                html += '<div class="col-md-6">';
+                html += '<div class="card">';
+                html += '<div class="card-body">';
+                html += '<h6 class="card-title">Set Turn Interval</h6>';
+                html += '<div class="input-group">';
+                html += '<input type="number" class="form-control form-control-sm" id="turnIntervalInput" min="1" max="3600" value="' + data.turnIntervalSeconds + '" placeholder="Seconds">';
+                html += '<button class="btn btn-sm btn-outline-primary" onclick="setTurnInterval()">Apply</button>';
+                html += '</div>';
+                html += '</div></div></div>';
+                html += '</div></div>';
+
+                // Session turn info
+                if (data.sessions && data.sessions.length > 0) {
+                    html += '<h6 class="mb-3">Active Sessions</h6>';
+                    html += '<div class="table-container"><table class="table table-dark table-sm">';
+                    html += '<thead><tr><th>Session</th><th>Turn</th><th>Time (s)</th><th>Players</th><th>Current Player</th><th>Progress</th><th>Actions</th></tr></thead><tbody>';
+                    data.sessions.forEach(s => {
+                        const progress = s.accumulatedSeconds + '/' + data.turnIntervalSeconds + 's';
+                        html += `<tr>
+                            <td>${escapeHtml(s.sessionName || s.sessionId.substring(0, 8))}</td>
+                            <td>${s.currentTurn}</td>
+                            <td>${s.currentTime}</td>
+                            <td>${s.playerCount}</td>
+                            <td>${escapeHtml(s.currentPlayer || '-')}</td>
+                            <td>${progress}</td>
+                            <td><button class="btn btn-sm btn-warning" onclick="advanceTurn('${s.sessionId}')">Advance Turn</button></td>
+                        </tr>`;
+                    });
+                    html += '</tbody></table></div>';
+                } else {
+                    html += '<div class="text-center text-muted py-4"><p>No active game sessions.</p></div>';
+                }
+
+                document.getElementById('turnManagementContent').innerHTML = html;
+            } catch (error) {
+                document.getElementById('turnManagementContent').innerHTML = `
+                    <div class="alert alert-danger">Failed to load turn status. Please login first.</div>
+                `;
+            }
+        }
+
+        async function advanceTurn(sessionId) {
+            try {
+                const response = await fetch('/api/v1/admin/turn/advance', {
+                    method: 'POST',
+                    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId: sessionId })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    showToast(`Turn advanced to ${data.turn} (${data.currentPlayer})`, 'success');
+                    await loadTurnStatus();
+                } else {
+                    showToast(data.error || 'Failed to advance turn', 'danger');
+                }
+            } catch (error) {
+                showToast('Failed to advance turn', 'danger');
+            }
+        }
+
+        async function setTurnInterval() {
+            const input = document.getElementById('turnIntervalInput');
+            const seconds = parseInt(input.value);
+            if (isNaN(seconds) || seconds < 1) {
+                showToast('Interval must be at least 1 second', 'danger');
+                return;
+            }
+            try {
+                const response = await fetch('/api/v1/admin/turn/interval', {
+                    method: 'POST',
+                    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ seconds: seconds })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    showToast(data.message, 'success');
+                    await loadTurnStatus();
+                } else {
+                    showToast(data.error || 'Failed to set interval', 'danger');
+                }
+            } catch (error) {
+                showToast('Failed to set turn interval', 'danger');
+            }
+        }
+
+        async function toggleScheduler(enabled) {
+            try {
+                const response = await fetch('/api/v1/admin/turn/toggle', {
+                    method: 'POST',
+                    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: enabled })
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    showToast(data.message, 'success');
+                    await loadTurnStatus();
+                } else {
+                    showToast(data.error || 'Failed to toggle scheduler', 'danger');
+                }
+            } catch (error) {
+                showToast('Failed to toggle scheduler', 'danger');
+            }
+        }
+
+        // System Logs
+        async function openLogsViewer() {
+            openModal('logsViewerModal');
+            await refreshLogs();
+        }
+
+        async function refreshLogs() {
+            const lines = document.getElementById('logLines').value;
+            try {
+                const response = await fetch(`/api/v1/admin/logs?lines=${lines}`, { headers: getAuthHeaders() });
+                const data = await response.json();
+
+                if (data.logs && data.logs.length > 0) {
+                    let html = '';
+                    data.logs.forEach(log => {
+                        html += `<div class="log-line">${escapeHtml(log)}</div>`;
+                    });
+                    document.getElementById('logsContent').innerHTML = html;
+                } else {
+                    document.getElementById('logsContent').innerHTML = `
+                        <div class="text-center text-muted">No logs found</div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('logsContent').innerHTML = `
+                    <div class="alert alert-danger">Failed to load logs. Please login first.</div>
+                `;
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Auto-refresh server status when modal is open
+        let statusRefreshInterval;
+        const serverStatusModal = document.getElementById('serverStatusModal');
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class') {
+                    if (serverStatusModal.classList.contains('show')) {
+                        statusRefreshInterval = setInterval(loadServerStatus, 30000);
+                    } else {
+                        clearInterval(statusRefreshInterval);
+                    }
+                }
+            });
+        });
+        observer.observe(serverStatusModal, { attributes: true });
+    </script>
+</body>
+</html>

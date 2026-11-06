@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DoraMCU - Login</title>
+    <link rel="stylesheet" href="css/game.css">
+    <link rel="stylesheet" href="css/login.css">
+    <style>
+        .auth-tab-group {
+            display: flex;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            padding: 4px;
+            margin-bottom: 20px;
+            gap: 4px;
+        }
+        .auth-tab-btn {
+            flex: 1;
+            padding: 8px 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .auth-tab-btn.active {
+            background: rgba(0, 212, 255, 0.15);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+        }
+        .server-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            margin-top: 6px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #00ff88;
+            box-shadow: 0 0 6px #00ff88;
+        }
+        .status-dot.offline {
+            background: #ff4444;
+            box-shadow: 0 0 6px #ff4444;
+        }
+        .pin-display-box {
+            background: rgba(0, 212, 255, 0.08);
+            border: 1px dashed var(--accent-cyan);
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            margin-top: 14px;
+            text-align: center;
+        }
+        .pin-code-text {
+            font-family: var(--font-display, monospace);
+            font-size: 1.4rem;
+            letter-spacing: 4px;
+            color: var(--accent-cyan);
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <!-- SVG Icon Sprite -->
+    <object data="icons/icons.svg" type="image/svg+xml" style="display:none"></object>
+    <!-- Login Window -->
+    <div class="login-container fade-in" id="loginView">
+        <div class="app-logo">
+            <svg class="icon" style="width:4rem;height:4rem"><use href="#icon-rocket"></use></svg>
+        </div>
+        <div class="app-title">DORAMCU</div>
+        <div class="app-subtitle">4X Space Strategy Game</div>
+
+        <!-- Target Server Selection -->
+        <div class="input-group">
+            <label class="form-label" for="serverSelect">Galactic Server Cluster</label>
+            <div style="display: flex;">
+                <span class="input-group-text"><svg class="icon"><use href="#icon-galaxy"></use></svg></span>
+                <select class="form-control" id="serverSelect" style="border-radius: 0 var(--radius-sm) var(--radius-sm) 0;">
+                    <option value="">Current Host (Default)</option>
+                    <option value="http://localhost:8080">Local Dev Server (8080)</option>
+                    <option value="custom">Custom Server Address...</option>
+                </select>
+            </div>
+            <div id="customServerContainer" style="display: none; margin-top: 8px;">
+                <input type="text" class="form-control" id="customServerUrl" placeholder="http://192.168.1.100:8080" style="border-radius: var(--radius-sm);">
+            </div>
+            <div class="server-status-pill" id="serverStatusPill">
+                <span class="status-dot" id="serverStatusDot"></span>
+                <span id="serverStatusLabel">Checking cluster...</span>
+            </div>
+        </div>
+
+        <!-- Auth Tabs: Password vs PIN -->
+        <div class="auth-tab-group">
+            <button type="button" class="auth-tab-btn active" id="tabPasswordBtn">
+                <svg class="icon"><use href="#icon-user"></use></svg> Commander Sign In
+            </button>
+            <button type="button" class="auth-tab-btn" id="tabPinBtn">
+                <svg class="icon"><use href="#icon-shield"></use></svg> Player PIN / Code
+            </button>
+        </div>
+
+        <!-- Form 1: Username & Password Login -->
+        <form id="loginForm">
+            <div class="input-group">
+                <label class="form-label" for="username">Username</label>
+                <div style="display: flex;">
+                    <span class="input-group-text"><svg class="icon"><use href="#icon-user"></use></svg></span>
+                    <input type="text" class="form-control" id="username" value="admin" placeholder="Enter your username" required autocomplete="username" style="border-radius: 0 var(--radius-sm) var(--radius-sm) 0;">
+                </div>
+            </div>
+            <div class="input-group">
+                <label class="form-label" for="password">Password</label>
+                <div style="display: flex;">
+                    <span class="input-group-text"><svg class="icon"><use href="#icon-lock"></use></svg></span>
+                    <input type="password" class="form-control" id="password" placeholder="Enter your password" required autocomplete="current-password" style="border-radius: 0 var(--radius-sm) var(--radius-sm) 0;">
+                </div>
+            </div>
+            <div class="error-message" id="errorMessage">
+                <svg class="icon"><use href="#icon-alert"></use></svg> <span id="errorText"></span>
+            </div>
+            <button type="submit" class="btn-signin mt-3" id="submitLogin">
+                <svg class="icon"><use href="#icon-rocket"></use></svg> Sign In
+            </button>
+            <div style="text-align: center; margin-top: 8px; font-size: 0.75rem; color: var(--text-muted);">
+                Default: <code style="color: var(--accent-cyan);">Butch Younger</code> / <code style="color: var(--accent-cyan);">3214</code>
+            </div>
+        </form>
+
+        <!-- Form 2: Player PIN / Access Code Login -->
+        <form id="pinLoginForm" style="display: none;">
+            <div class="input-group">
+                <label class="form-label" for="playerPinInput">6-Digit Player Access PIN</label>
+                <div style="display: flex;">
+                    <span class="input-group-text"><svg class="icon"><use href="#icon-shield"></use></svg></span>
+                    <input type="text" class="form-control" id="playerPinInput" placeholder="e.g. 123456 or 3214" maxlength="10" pattern="[0-9]*" style="border-radius: 0 var(--radius-sm) var(--radius-sm) 0; font-family: monospace; letter-spacing: 2px;">
+                </div>
+            </div>
+            <div class="error-message" id="pinErrorMessage">
+                <svg class="icon"><use href="#icon-alert"></use></svg> <span id="pinErrorText"></span>
+            </div>
+            <button type="submit" class="btn-signin mt-3" id="submitPinLogin">
+                <svg class="icon"><use href="#icon-shield"></use></svg> Sign In with PIN
+            </button>
+            <div style="text-align: center; margin-top: 8px; font-size: 0.75rem; color: var(--text-muted);">
+                Default PIN: <code style="color: var(--accent-cyan);">3214</code> (Butch Younger)
+            </div>
+        </form>
+
+        <div class="divider">or</div>
+        <button type="button" class="btn-new-empire" id="newEmpireBtn">
+            <svg class="icon"><use href="#icon-galaxy"></use></svg> New Empire & Player Code
+        </button>
+        <a href="game.html" class="btn-dashboard">
+            <svg class="icon"><use href="#icon-gamepad"></use></svg> Play Game
+        </a>
+        <div class="footer-text">
+            <svg class="icon"><use href="#icon-shield"></use></svg> Secure Authentication
+        </div>
+    </div>
+
+    <!-- New Empire Registration View -->
+    <div class="login-container fade-in" id="registerView" style="display:none;">
+        <div class="app-logo">
+            <svg class="icon" style="width:4rem;height:4rem"><use href="#icon-galaxy"></use></svg>
+        </div>
+        <div class="app-title">NEW EMPIRE</div>
+        <div class="app-subtitle">Create Your Command Identity</div>
+
+        <form id="registerForm">
+            <div class="input-group">
+                <label class="form-label" for="registerUsername">Commander Name</label>
+                <div style="display: flex;">
+                    <span class="input-group-text"><svg class="icon"><use href="#icon-user"></use></svg></span>
+                    <input type="text" class="form-control" id="registerUsername" placeholder="Choose a commander name" required minlength="3" maxlength="50" style="border-radius: 0 var(--radius-sm) var(--radius-sm) 0;">
+                </div>
+            </div>
+            <div class="input-group">
+                <label class="form-label" for="registerPassword">Access Code / Password</label>
+                <div style="display: flex;">
+                    <span class="input-group-text"><svg class="icon"><use href="#icon-lock"></use></svg></span>
+                    <input type="password" class="form-control" id="registerPassword" placeholder="Choose an access code" required minlength="4" maxlength="100" style="border-radius: 0 var(--radius-sm) var(--radius-sm) 0;">
+                </div>
+            </div>
+            <div class="input-group">
+                <label class="form-label" for="registerGalaxy">Galaxy</label>
+                <div style="display: flex;">
+                    <span class="input-group-text"><svg class="icon"><use href="#icon-galaxy"></use></svg></span>
+                    <select class="form-control" id="registerGalaxy" style="border-radius: 0 var(--radius-sm) var(--radius-sm) 0;">
+                        <option value="Milky Way">Milky Way</option>
+                    </select>
+                </div>
+            </div>
+            <div class="error-message" id="registerErrorMessage">
+                <svg class="icon"><use href="#icon-alert"></use></svg> <span id="registerErrorText"></span>
+            </div>
+            <button type="submit" class="btn-signin mt-3" id="submitRegister">
+                <svg class="icon"><use href="#icon-rocket"></use></svg> Create Empire & Get PIN
+            </button>
+        </form>
+
+        <div id="registrationSuccessBox" class="pin-display-box" style="display: none;">
+            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px;">Your Unique 6-Digit Player PIN:</div>
+            <div class="pin-code-text" id="generatedPinDisplay">------</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px;">Use this PIN to login or join multiplayer sessions instantly.</div>
+        </div>
+
+        <button type="button" class="btn-back mt-3" id="backToLoginBtn">
+            <svg class="icon"><use href="#icon-door"></use></svg> Back to Login
+        </button>
+    </div>
+
+    <!-- Dashboard View (after login) -->
+    <div class="login-container dashboard-view" id="dashboardView">
+        <div class="user-info-card">
+            <div style="font-size: 2rem;"><svg class="icon" style="width:2rem;height:2rem"><use href="#icon-user"></use></svg></div>
+            <div class="username mt-2" id="displayUsername"></div>
+            <div class="mt-1" id="displayEmpireInfo" style="color: var(--text-secondary); font-size: 0.88rem;">Welcome back, Commander!</div>
+            <div class="mt-2" id="displayPinBadge" style="display: none;">
+                <span style="background: rgba(0,212,255,0.15); border: 1px solid var(--accent-cyan); padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; color: var(--accent-cyan); font-family: monospace;">
+                    Player PIN: <strong id="displayPinValue"></strong>
+                </span>
+            </div>
+            <div class="mt-2" style="font-size: 0.75rem; color: var(--text-muted);" id="connectedServerDisplay">
+                Server: Connected
+            </div>
+        </div>
+
+        <a href="game.html" class="btn-dashboard">
+            <svg class="icon"><use href="#icon-gamepad"></use></svg> Play Game
+        </a>
+        <a href="admin.html" class="btn-dashboard">
+            <svg class="icon"><use href="#icon-wrench"></use></svg> Admin Dashboard
+        </a>
+        <button class="btn-logout" id="logoutBtn">
+            <svg class="icon"><use href="#icon-door"></use></svg> Logout
+        </button>
+
+        <div class="footer-text">
+            <svg class="icon"><use href="#icon-galaxy"></use></svg> DoraMCU System
+        </div>
+    </div>
+
+    <script src="js/game-api.js?v=7"></script>
+    <script>
+        (function() {
+            const loginForm = document.getElementById('loginForm');
+            const pinLoginForm = document.getElementById('pinLoginForm');
+            const tabPasswordBtn = document.getElementById('tabPasswordBtn');
+            const tabPinBtn = document.getElementById('tabPinBtn');
+            const serverSelect = document.getElementById('serverSelect');
+            const customServerContainer = document.getElementById('customServerContainer');
+            const customServerUrl = document.getElementById('customServerUrl');
+            const serverStatusDot = document.getElementById('serverStatusDot');
+            const serverStatusLabel = document.getElementById('serverStatusLabel');
+
+            const errorMessage = document.getElementById('errorMessage');
+            const errorText = document.getElementById('errorText');
+            const pinErrorMessage = document.getElementById('pinErrorMessage');
+            const pinErrorText = document.getElementById('pinErrorText');
+            const submitLogin = document.getElementById('submitLogin');
+            const submitPinLogin = document.getElementById('submitPinLogin');
+            const loginView = document.getElementById('loginView');
+            const dashboardView = document.getElementById('dashboardView');
+            const registerView = document.getElementById('registerView');
+            const displayUsername = document.getElementById('displayUsername');
+            const displayEmpireInfo = document.getElementById('displayEmpireInfo');
+            const displayPinBadge = document.getElementById('displayPinBadge');
+            const displayPinValue = document.getElementById('displayPinValue');
+            const connectedServerDisplay = document.getElementById('connectedServerDisplay');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const newEmpireBtn = document.getElementById('newEmpireBtn');
+            const backToLoginBtn = document.getElementById('backToLoginBtn');
+            const registerForm = document.getElementById('registerForm');
+            const registerErrorMessage = document.getElementById('registerErrorMessage');
+            const registerErrorText = document.getElementById('registerErrorText');
+            const submitRegister = document.getElementById('submitRegister');
+            const registrationSuccessBox = document.getElementById('registrationSuccessBox');
+            const generatedPinDisplay = document.getElementById('generatedPinDisplay');
+
+            // Initialize server selector from localStorage
+            initServerSelection();
+
+            // Tab switching
+            tabPasswordBtn.addEventListener('click', function() {
+                tabPasswordBtn.classList.add('active');
+                tabPinBtn.classList.remove('active');
+                loginForm.style.display = 'block';
+                pinLoginForm.style.display = 'none';
+                errorMessage.style.display = 'none';
+            });
+
+            tabPinBtn.addEventListener('click', function() {
+                tabPinBtn.classList.add('active');
+                tabPasswordBtn.classList.remove('active');
+                pinLoginForm.style.display = 'block';
+                loginForm.style.display = 'none';
+                pinErrorMessage.style.display = 'none';
+            });
+
+            function initServerSelection() {
+                const storedServer = localStorage.getItem('doramcu_server_url') || '';
+                if (!storedServer) {
+                    serverSelect.value = '';
+                    customServerContainer.style.display = 'none';
+                } else if (storedServer === 'http://localhost:8080') {
+                    serverSelect.value = 'http://localhost:8080';
+                    customServerContainer.style.display = 'none';
+                } else {
+                    serverSelect.value = 'custom';
+                    customServerUrl.value = storedServer;
+                    customServerContainer.style.display = 'block';
+                }
+                updateServerStatus();
+            }
+
+            serverSelect.addEventListener('change', function() {
+                if (serverSelect.value === 'custom') {
+                    customServerContainer.style.display = 'block';
+                } else {
+                    customServerContainer.style.display = 'none';
+                    GameAPI.setServerUrl(serverSelect.value);
+                    updateServerStatus();
+                    loadGalaxies();
+                }
+            });
+
+            customServerUrl.addEventListener('change', function() {
+                GameAPI.setServerUrl(customServerUrl.value);
+                updateServerStatus();
+                loadGalaxies();
+            });
+
+            function updateServerStatus() {
+                const base = GameAPI.getServerUrl();
+                const targetUrl = (base ? base : '') + '/api/v1/auth/server-info';
+                serverStatusLabel.textContent = 'Pinging cluster...';
+
+                fetch(targetUrl)
+                    .then(r => r.json())
+                    .then(info => {
+                        serverStatusDot.classList.remove('offline');
+                        serverStatusLabel.textContent = `${info.serverName || 'Cluster'} (Online)`;
+                        if (connectedServerDisplay) {
+                            connectedServerDisplay.textContent = `Server: ${info.serverName || 'Cluster'} (${base || 'Default Host'})`;
+                        }
+                    })
+                    .catch(() => {
+                        serverStatusDot.classList.add('offline');
+                        serverStatusLabel.textContent = 'Server: Offline / Unreachable';
+                        if (connectedServerDisplay) {
+                            connectedServerDisplay.textContent = 'Server: Offline / Disconnected';
+                        }
+                    });
+            }
+
+            // Check if already logged in on page load
+            checkAuth();
+
+            // Auto-login with default admin credentials on page load if needed
+            autoLogin();
+
+            // New Empire button - show registration form and load galaxies
+            newEmpireBtn.addEventListener('click', function() {
+                loginView.style.display = 'none';
+                registerView.style.display = 'block';
+                registerForm.reset();
+                registerErrorMessage.style.display = 'none';
+                if (registrationSuccessBox) registrationSuccessBox.style.display = 'none';
+                loadGalaxies();
+            });
+
+            // Back to Login button
+            backToLoginBtn.addEventListener('click', function() {
+                registerView.style.display = 'none';
+                loginView.style.display = 'block';
+                registerForm.reset();
+                registerErrorMessage.style.display = 'none';
+            });
+
+            // Load available galaxies from the server
+            function loadGalaxies() {
+                const galaxySelect = document.getElementById('registerGalaxy');
+                const base = GameAPI.getServerUrl();
+                fetch((base ? base : '') + '/api/v1/auth/galaxies')
+                    .then(response => response.json())
+                    .then(galaxies => {
+                        galaxySelect.innerHTML = '';
+                        galaxies.forEach(name => {
+                            const option = document.createElement('option');
+                            option.value = name;
+                            option.textContent = name;
+                            galaxySelect.appendChild(option);
+                        });
+                    })
+                    .catch(() => {
+                        galaxySelect.innerHTML = '<option value="Milky Way">Milky Way</option>';
+                    });
+            }
+
+            // Registration form submission
+            registerForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                registerErrorMessage.style.display = 'none';
+
+                const username = document.getElementById('registerUsername').value.trim();
+                const password = document.getElementById('registerPassword').value;
+                const galaxyName = document.getElementById('registerGalaxy').value;
+
+                if (!username || !password) {
+                    showRegisterError('Please fill in all fields.');
+                    return;
+                }
+
+                if (username.length < 3) {
+                    showRegisterError('Commander name must be at least 3 characters.');
+                    return;
+                }
+
+                if (password.length < 4) {
+                    showRegisterError('Access code must be at least 4 characters.');
+                    return;
+                }
+
+                submitRegister.disabled = true;
+                submitRegister.innerHTML = '⏳ Creating Empire...';
+
+                const base = GameAPI.getServerUrl();
+                fetch((base ? base : '') + '/api/v1/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username, password: password, galaxyName: galaxyName })
+                })
+                .then(response => {
+                    if (response.ok || response.status === 201) {
+                        return response.json();
+                    } else if (response.status === 400) {
+                        throw new Error('Username already exists. Choose another name.');
+                    } else {
+                        throw new Error('Registration failed. Please try again.');
+                    }
+                })
+                .then(data => {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('username', data.username);
+                    if (data.pin) localStorage.setItem('playerPin', data.pin);
+                    if (data.empireName) localStorage.setItem('empireName', data.empireName);
+
+                    if (data.pin && registrationSuccessBox) {
+                        generatedPinDisplay.textContent = data.pin;
+                        registrationSuccessBox.style.display = 'block';
+                        setTimeout(() => checkAuth(), 2500);
+                    } else {
+                        checkAuth();
+                    }
+                })
+                .catch(error => {
+                    showRegisterError(error.message);
+                })
+                .finally(() => {
+                    submitRegister.disabled = false;
+                    submitRegister.innerHTML = '🚀 Create Empire & Get PIN';
+                });
+            });
+
+            function showRegisterError(message) {
+                registerErrorText.textContent = message;
+                registerErrorMessage.style.display = 'block';
+            }
+
+            // Password login submission
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                errorMessage.style.display = 'none';
+
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value;
+
+                if (!username || !password) {
+                    showError('Please enter both username and password.');
+                    return;
+                }
+
+                submitLogin.disabled = true;
+                submitLogin.innerHTML = '⏳ Signing in...';
+
+                GameAPI.login(username, password)
+                .then(data => {
+                    loginForm.reset();
+                    checkAuth();
+                })
+                .catch(error => {
+                    showError('Invalid username or password. Check your credentials and try again.');
+                })
+                .finally(() => {
+                    submitLogin.disabled = false;
+                    submitLogin.innerHTML = '🚀 Sign In';
+                });
+            });
+
+            // PIN login submission
+            pinLoginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                pinErrorMessage.style.display = 'none';
+
+                const pin = document.getElementById('playerPinInput').value.trim();
+                if (!pin) {
+                    showPinError('Please enter your 4-6 digit Player PIN.');
+                    return;
+                }
+
+                submitPinLogin.disabled = true;
+                submitPinLogin.innerHTML = '⏳ Validating PIN...';
+
+                GameAPI.pinLogin(pin)
+                .then(data => {
+                    pinLoginForm.reset();
+                    checkAuth();
+                })
+                .catch(error => {
+                    showPinError(error.message || 'Invalid or unregistered Player PIN code.');
+                })
+                .finally(() => {
+                    submitPinLogin.disabled = false;
+                    submitPinLogin.innerHTML = '🛡️ Sign In with PIN';
+                });
+            });
+
+            logoutBtn.addEventListener('click', function() {
+                GameAPI.clearAuth();
+                checkAuth();
+            });
+
+            function checkAuth() {
+                const token = GameAPI.getToken();
+                const username = GameAPI.getUsername();
+                const pin = GameAPI.getPlayerPin();
+                const empire = GameAPI.getEmpireName();
+
+                if (token && username) {
+                    loginView.style.display = 'none';
+                    registerView.style.display = 'none';
+                    dashboardView.style.display = 'block';
+                    displayUsername.textContent = username;
+
+                    if (empire) {
+                        displayEmpireInfo.textContent = `Empire: ${empire}`;
+                    } else {
+                        displayEmpireInfo.textContent = 'Welcome back, Commander!';
+                    }
+
+                    if (pin) {
+                        displayPinBadge.style.display = 'block';
+                        displayPinValue.textContent = pin;
+                    } else {
+                        displayPinBadge.style.display = 'none';
+                    }
+
+                    updateServerStatus();
+                } else {
+                    loginView.style.display = 'block';
+                    dashboardView.style.display = 'none';
+                }
+            }
+
+            function showError(message) {
+                errorText.textContent = message;
+                errorMessage.style.display = 'block';
+            }
+
+            function showPinError(message) {
+                pinErrorText.textContent = message;
+                pinErrorMessage.style.display = 'block';
+            }
+
+            function autoLogin() {
+                const token = GameAPI.getToken();
+                if (token) return;
+
+                const username = 'Butch Younger';
+                const password = '3214';
+
+                GameAPI.login(username, password)
+                .then(() => checkAuth())
+                .catch(() => {});
+            }
+        })();
+    </script>
+</body>
+</html>

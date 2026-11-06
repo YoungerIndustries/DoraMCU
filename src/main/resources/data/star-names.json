@@ -1,0 +1,47 @@
+{
+  "catalogPrefix": "HIP",
+  "categories": {
+    "RED": [
+      "Betelgeuse", "Antares", "Aldebaran", "Arcturus", "Mira", "Pollux", "Alphard",
+      "Acrab", "Mebsuta", "Algorab", "Sargas", "Kaus Australis", "Gacrux", "Minkar",
+      "Peacock", "Alcalat", "Sulafat", "Alsephina", "Avior", "Alpherg", "Aljanah",
+      "Nair al Saif", "Alshat", "Alphirk", "Alkalurops", "Hamal", "Mirach", "Denebola",
+      "Kaus Media", "Kaus Borealis", "Alphecca", "Tianheng", "Tianji", "Baten Ketus",
+      "Al Habor", "Al Minliar", "Al Tarf", "Al Niyah", "Al Hawaz", "Al Wazn",
+      "Al Qawla", "Al Qalb", "Al Risha", "Al Dhanab", "Al Genah", "Al Hagar",
+      "Al Khabar", "Al Maabed", "Al Nasaq", "Al Qaim", "Al Rasass", "Al Sufah",
+      "Al Tair", "Al Wair", "Al Zaurak", "Alpherculus", "Aludra", "Avi", "Azha",
+      "Celaeno", "Cujam", "Deneb Kaitos", "Dschubba", "Epsilon Aurigae", "Furud",
+      "Gienah", "Hadar", "Izar", "Jabbah", "Kaffaljidhma", "Maasym", "Meissa",
+      "Nash", "Phact", "Polaris", "Praesepe", "Rigil Kentaurus", "Sceptrum",
+      "Schedar", "Shaula", "Tania Borealis", "Tania Australis", "Terebellium",
+      "Unukalhai", "Wezen", "Xamidimura", "Zaniah", "Zavijava", "Zuben Elgenubi",
+      "Zuben Eschamali", "Zubeneschamali"
+    ],
+    "YELLOW": [
+      "Sol", "Capella", "Castor", "Canopus", "Procyon", "Achernar", "Fomalhaut",
+      "Mirzam", "Naos", "Alchiba", "Almach", "Alshain", "Ankaa", "Asellus Borealis",
+      "Asellus Australis", "Botein", "Caph", "Chertan", "Coxa", "Diadem", "Diphda",
+      "Edasich", "El Achar", "El Kophra", "Eltanin", "Gacrux", "Gorgona", "Heze",
+      "Hoydan", "Iklil", "Kaitou", "Kartika", "Kochab", "Kraz", "Larawag", "Minkar",
+      "Muphrid", "Nekkar", "Nunki", "Polaris", "Pogom", "Ptolemaeus", "Ruchbah",
+      "Saiph", "Segin", "Seginus", "Sheratan", "Sinistra", "Sothis", "Tania Borealis",
+      "Tarf", "Thuban", "Tsih", "Tyl", "Urtijor", "Wasat", "Wezen", "Yed Prior",
+      "Yed Posterior", "Zaurak", "Zavijava", "Zosma"
+    ],
+    "BLUE": [
+      "Rigel", "Spica", "Vega", "Sirius", "Regulus", "Altair", "Achernar", "Alnilam",
+      "Alnitak", "Mintaka", "Alcyone", "Acrux", "Adhara", "Algieba", "Alphard",
+      "Alshat", "Avior", "Bellatrix", "Celaeno", "Deneb", "Elnath", "Electra",
+      "Fomalhaut", "Gacrux", "Hadar", "Maia", "Merope", "Mirach", "Naos", "Polaris",
+      "Praesepe", "Sceptrum", "Schedar", "Shaula", "Taygeta", "Wezen"
+    ],
+    "PURPLE": [
+      "Deneb", "Altair", "Albireo", "Mira", "Rho Cassiopeiae", "VY Canis Majoris",
+      "Eta Carinae", "Polaris", "Rigel Kentaurus", "Alcyone", "Acrux", "Adhara",
+      "Algieba", "Alnilam", "Alshat", "Avior", "Bellatrix", "Celaeno", "Elnath",
+      "Electra", "Fomalhaut", "Gacrux", "Hadar", "Maia", "Merope", "Mirach", "Naos",
+      "Praesepe", "Sceptrum", "Schedar", "Shaula", "Taygeta", "Wezen"
+    ]
+  }
+}

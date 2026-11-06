@@ -1,0 +1,25 @@
+[project]
+name = "dora-ai-openhands"
+version = "0.1.0"
+description = "DoraAI — A Junie-like autonomous coding agent built on OpenHands SDK"
+requires-python = ">=3.13"
+dependencies = [
+    "openhands-sdk>=1.60.1",
+    "openhands-tools>=1.60.1",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+dora-ai = "dora_ai_openhands.cli:main"
+dora-ai-server = "dora_ai_openhands.server:main"
+
+[build-system]
+requires = ["uv_build>=0.13.7,<0.14.0"]
+build-backend = "uv_build"

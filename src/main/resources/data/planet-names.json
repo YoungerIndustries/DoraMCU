@@ -1,0 +1,49 @@
+{
+  "catalogPrefix": "PDX",
+  "categories": {
+    "Roman Mythology": [
+      "Jupiter", "Juno", "Mars", "Venus", "Mercury", "Neptune", "Ceres", "Vesta",
+      "Minerva", "Diana", "Apollo", "Vulcan", "Pluto", "Proserpina", "Bacchus",
+      "Cupid", "Janus", "Vulcanus", "Saturn", "Ops", "Concordia", "Pax", "Victoria",
+      "Fortuna", "Bellona", "Hercules", "Castor", "Pollux", "Romulus", "Remus",
+      "Aeneas", "Dido", "Lavinia", "Turnus", "Nisus", "Euryalus", "Camilla",
+      "Amata", "Latinus"
+    ],
+    "Greek Mythology": [
+      "Zeus", "Hera", "Athena", "Ares", "Aphrodite", "Hermes", "Poseidon", "Hades",
+      "Demeter", "Hestia", "Artemis", "Apollo", "Hephaestus", "Dionysus", "Persephone",
+      "Helios", "Selene", "Eos", "Nyx", "Thanatos", "Hypnos", "Eris", "Nike", "Iris",
+      "Hebe", "Charon", "Prometheus", "Epimetheus", "Atlas", "Oceanus", "Tethys",
+      "Mnemosyne", "Themis", "Metis", "Gaia", "Uranus", "Chronos", "Erebus", "Aether", "Eros"
+    ],
+    "Norse Mythology": [
+      "Odin", "Thor", "Freya", "Loki", "Frigg", "Tyr", "Heimdall", "Baldr", "Njord",
+      "Freyr", "Idun", "Sif", "Hel", "Ran", "Skadi", "Bragi", "Hoenir", "Ullr",
+      "Forseti", "Vidar", "Vali", "Hermod", "Sleipnir", "Ratatoskr", "Yggdrasil",
+      "Midgard", "Asgard", "Vanaheim", "Jotunheim", "Niflheim", "Muspelheim", "Alfheim",
+      "Svartalfheim", "Fenrir", "Jormungandr", "Surtr", "Ragnarok"
+    ],
+    "Historical Figures": [
+      "Galileo", "Kepler", "Newton", "Copernicus", "Hubble", "Curie", "Tesla", "Einstein",
+      "Darwin", "Hypatia", "Anaximander", "Aristarchus", "Ptolemy", "Tycho", "Brahé",
+      "Bessel", "Herschel", "Leavitt", "Shapley", "Fleming", "Perkins", "Armstrong",
+      "Aldrin", "Collins", "Sagan", "Carlson", "Tsiolkovsky", "Oberth", "von Braun",
+      "Gagarin", "Tereshkova", "Sally Ride", "Musk", "Bezos", "Branson", "Hawking",
+      "Feynman", "Bohr", "Planck", "Heisenberg"
+    ],
+    "Celestial Bodies": [
+      "Titan", "Europa", "Ganymede", "Callisto", "Io", "Triton", "Pluto", "Eris",
+      "Haumea", "Makemake", "Ceres", "Phobos", "Deimos", "Enceladus", "Miranda",
+      "Ariel", "Umbriel", "Oberon", "Titania", "Rhea", "Dione", "Tethys", "Iapetus",
+      "Charon", "Nix", "Hydra", "Sedna", "Quaoar", "Varuna", "Orcus", "Salacia",
+      "Methone", "Pallene", "Anthe", "Pan", "Atlas", "Prometheus", "Pandora", "Janus", "Epimetheus"
+    ],
+    "Cultural Names": [
+      "Pangu", "Nuwa", "Fuxi", "Amaterasu", "Tsukuyomi", "Susanoo", "Inari", "Anubis",
+      "Ra", "Osiris", "Isis", "Horus", "Set", "Thoth", "Bastet", "Shiva", "Vishnu",
+      "Brahma", "Indra", "Ganesha", "Lakshmi", "Saraswati", "Kali", "Durga",
+      "Quetzalcoatl", "Tezcatlipoca", "Xipe Totec", "Tlaloc", "Chaac", "Inti",
+      "Pachamama", "Viracocha", "Apu", "Maman", "Wakanda", "Zulu", "Xhosa", "Maori", "Tangaroa"
+    ]
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "proceduralPrefix": "DS",
+  "categories": {
+    "FRIGATE": [
+      "Swift", "Arrow", "Dart", "Flash", "Gale", "Hawk", "Javelin", "Lightning",
+      "Meteor", "Peregrine", "Raptor", "Sparrow", "Sting", "Viper", "Wasp", "Zephyr",
+      "Blitz", "Comet", "Falcon", "Harrier", "Imp", "Kestrel", "Lynx", "Nimble",
+      "Osprey", "Puma", "Quail", "Raven", "Sandpiper", "Tern", "Urchin", "Vulture",
+      "Weasel", "Xenon", "Yawl", "Zephyrus", "Aegis", "Bolt", "Cutter", "Dagger",
+      "Eagle", "Fury", "Ghost", "Hunter", "Inferno", "Jackal"
+    ],
+    "DESTROYER": [
+      "Avenger", "Bulwark", "Centurion", "Defender", "Endurance", "Fortitude",
+      "Guardian", "Hammer", "Invincible", "Justice", "Knight", "Liberty", "Mighty",
+      "Noble", "Odyssey", "Patriot", "Quasar", "Reaper", "Sentinel", "Titan", "Unity",
+      "Vanguard", "Warrior", "Zeus", "Achilles", "Brave", "Champion", "Dreadnought",
+      "Eclipse", "Falcon", "Gladiator", "Horizon", "Intrepid", "Juggernaut", "Kraken",
+      "Legion", "Mars", "Nemesis", "Orion", "Phoenix", "Quest", "Ranger", "Storm",
+      "Thunder", "Valor", "Wrath", "Xcalibur", "Ymir", "Zealot"
+    ],
+    "CRUISER": [
+      "Ambition", "Bastion", "Conqueror", "Dominion", "Eternal", "Fortress", "Glory",
+      "Horizon", "Imperial", "Jupiter", "Kingship", "Legend", "Monarch", "Nebula",
+      "Odyssey", "Pinnacle", "Quintessence", "Radiance", "Sovereign", "Triumph",
+      "Ultimate", "Vindicator", "Watchdog", "Xenophon", "Yggdrasil", "Zenith", "Aegis",
+      "Behemoth", "Colossus", "Dreadnought", "Erebus", "Fate", "Goliath", "Hercules",
+      "Infinity", "Juggernaut", "Kratos", "Loki", "Majesty", "Norse", "Olympus",
+      "Poseidon", "Quantum", "Ragnarok", "Supremacy", "Thunder"
+    ],
+    "BATTLESHIP": [
+      "Annihilator", "Behemoth", "Cataclysm", "Devastator", "Eclipse", "Fury", "Goliath",
+      "Hellfire", "Inferno", "Juggernaut", "Kraken", "Leviathan", "Mammoth", "Nemesis",
+      "Oblivion", "Pandemonium", "Quake", "Ragnarok", "Supernova", "Terminus",
+      "Ultratron", "Vortex", "Wrath", "Xenocide", "Ymir", "Zeus", "Apocalypse", "Bane",
+      "Crimson", "Doom", "Eternal", "Fate", "Grave", "Havoc", "Iron", "Judgment",
+      "Karma", "Lethal", "Mortal", "Nightmare", "Omen", "Peril", "Reckoning",
+      "Scourge", "Terror"
+    ],
+    "CARRIER": [
+      "Airborne", "Barracuda", "Commander", "Dreadwing", "Eagle", "Fleet", "Garrison",
+      "Harbinger", "Interceptor", "Juggernaut", "Keelhaul", "Liberty", "Mother", "Nest",
+      "Orbital", "Pegasus", "Quiver", "Raven", "Swarm", "Tempest", "Unicorn", "Valkyrie",
+      "Wing", "Xenon", "Yawl", "Zenith", "Admiral", "Battle", "Carrier", "Dreadnought",
+      "Emperor", "Fleet", "General", "Hawk", "Imperial", "Jupiter", "King", "Leader",
+      "Marshal", "Navy", "Ocean", "Phoenix", "Queen", "Royal", "Star", "Titan"
+    ],
+    "MOTHERSHIP": [
+      "Almighty", "Celestial", "Divine", "Eternal", "Genesis", "Heaven", "Infinity",
+      "Juggernaut", "Kosmos", "Legion", "Majesty", "Nexus", "Omnipotent", "Paragon",
+      "Quantum", "Revelation", "Supreme", "Transcendent", "Ultimate", "Vanguard",
+      "World", "Xenoverse", "Yggdrasil", "Zenith", "Apex", "Babylon", "Cosmos",
+      "Dominion", "Eternity", "Fate", "Galaxy", "Harbinger", "Imperium", "Juggernaut",
+      "Kronos", "Leviathan", "Monarch", "Nirvana", "Olympus", "Pantheon", "Quantum",
+      "Ragnarok", "Singularity"
+    ]
+  }
+}

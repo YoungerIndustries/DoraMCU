@@ -1,0 +1,27 @@
+{
+  "catalogPrefix": "NGC",
+  "names": [
+    "Andromeda", "Milky Way", "Triangulum", "Sombrero", "Whirlpool", "Pinwheel",
+    "Black Eye", "Cartwheel", "Maffei", "Bode", "Leo I", "M81", "M82", "M101",
+    "M33", "M77", "M87", "M51", "M63", "M74", "M83", "M94", "M96", "M100",
+    "M106", "NGC 1300", "NGC 253", "NGC 4038", "NGC 4039", "NGC 4412", "NGC 4565",
+    "NGC 4631", "NGC 4656", "NGC 5194", "NGC 5195", "NGC 6744", "NGC 6822",
+    "NGC 7331", "IC 1011", "IC 342", "IC 1179", "IC 2163", "IC 2497", "IC 2944",
+    "IC 3568", "IC 4634", "IC 5152",
+    "Asgard", "Olympus", "Valhalla", "Elysium", "Avalon", "Camelot", "Atlantis",
+    "Lemuria", "Mu", "Hyperborea", "Tartarus", "Elpis", "Yggdrasil", "Midgard",
+    "Jotunheim", "Vanaheim", "Niflheim", "Muspelheim", "Alfheim", "Svartalfheim",
+    "Heaven", "Eden", "Shambhala", "Agharti", "Kailash", "Sumeru", "Patala",
+    "Tusita", "Nirmanarshi", "Paranirmita", "Yama", "Dhatar", "Tavist", "Nimana",
+    "Jana", "Mahar", "Tapas", "Satya",
+    "Alpha Centauri", "Sirius", "Vega", "Rigel", "Betelgeuse", "Antares", "Deneb",
+    "Altair", "Aldebaran", "Arcturus", "Capella", "Procyon", "Pollux", "Fomalhaut",
+    "Regulus", "Spica", "Castor", "Gacrux", "Acrux", "Mimosa", "Epsilon Eridani",
+    "Tau Ceti", "Lambda Bootis", "Sigma Draconis", "Xi Bootis", "Eta Cassiopeiae",
+    "Zeta Reticuli", "Mu Herculis", "Nu Ophiuchi", "Omicron Eridani", "Pi Mensae",
+    "Rho Coronae", "Sigma Leonis", "Tau Puppis", "Upsilon Andromedae", "Xi Aquilae",
+    "Zeta Phoenicis", "Eta Crucis", "Theta Doradus", "Iota Draconis", "Kappa Andromedae",
+    "Lambda Aquilae", "Mu Cassiopeiae", "Nu Aquilae", "Omicron Puppis", "Pi Centauri",
+    "Rho Ophiuchi"
+  ]
+}
