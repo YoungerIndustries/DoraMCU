@@ -14,7 +14,7 @@ bootRun {
 }
 
 group = 'com.YISY.modules'
-version = '0.1.7'
+version = '0.2.7'
 description = 'DoraMCU'
 
 java {
@@ -29,6 +29,7 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -61,10 +62,11 @@ dependencies {
 
 // JVM memory settings — standardized across environments.
 // Override via JVM_OPTS environment variable where supported.
-// When dl.rest-client.enabled=true, DL4J is not loaded and JavaCPP args are not needed.
-def jvmBaseArgs = ['-XX:+UseG1GC', '-XX:MaxGCPauseMillis=200']
+// DL4J is disabled by default (dl.rest-client.enabled=true), so JavaCPP args are not needed.
+def jvmBaseArgs = ['-XX:+UseG1GC', '-XX:MaxGCPauseMillis=200', '-Xmx4G']
 
 // DL4J-specific JVM args — only needed when running local DL4J (dl.rest-client.enabled=false)
+// Add these via JVM_OPTS or the bootRun command when local DL4J is enabled.
 def dl4jArgs = ['-Dorg.bytedeco.javacpp.maxbytes=2G', '-Dorg.bytedeco.javacpp.maxphysicalbytes=4G', '-Dorg.bytedeco.javacpp.alwaysscan=true']
 
 tasks.named('test') {
@@ -74,5 +76,8 @@ tasks.named('test') {
 }
 
 tasks.named('bootRun') {
-    jvmArgs jvmBaseArgs + ['-Xmx4G'] + dl4jArgs
+    // Default: no DL4J native args (REST client mode)
+    // To enable local DL4J, add: --args="-Ddl.rest-client.enabled=false"
+    jvmArgs jvmBaseArgs
+    maxHeapSize = '8G'
 }
