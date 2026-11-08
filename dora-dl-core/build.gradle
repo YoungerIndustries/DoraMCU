@@ -18,13 +18,15 @@ repositories {
 }
 
 dependencies {
-    // Spring Boot for configuration properties
+    // Spring Boot for configuration properties and REST client
     api 'org.springframework.boot:spring-boot-starter'
+    api 'org.springframework.boot:spring-boot-starter-web'
 
-    // Deeplearning4j - neural network for AI game strategy
+    // Deeplearning4j for local DL mode (when dl.rest-client.enabled=false)
+    // The DlRestClient calls the Python microservice on port 8083 when dl.rest-client.enabled=true
     api 'org.deeplearning4j:deeplearning4j-core:1.0.0-M2.1'
+    api 'org.deeplearning4j:deeplearning4j-nn:1.0.0-M2.1'
     api 'org.nd4j:nd4j-native-platform:1.0.0-M2.1'
-
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -32,4 +34,9 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+// dora-dl-core is a library module — no main class for bootJar
+tasks.withType(org.springframework.boot.gradle.tasks.bundling.BootJar.class).configureEach {
+    enabled = false
 }

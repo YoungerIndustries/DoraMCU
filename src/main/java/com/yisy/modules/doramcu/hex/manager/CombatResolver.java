@@ -4,7 +4,18 @@ import com.yisy.modules.doramcu.hex.Battle;
 import com.yisy.modules.doramcu.hex.Fleet;
 import com.yisy.modules.doramcu.hex.Hex3D;
 import com.yisy.modules.doramcu.hex.Planet;
+import com.yisy.modules.doramcu.traveller.AbstractBattle;
+import com.yisy.modules.doramcu.traveller.HighGuardRangeBand;
+import com.yisy.modules.doramcu.traveller.HighGuardShipCombat;
+import com.yisy.modules.doramcu.traveller.HighGuardShipDesign;
+import com.yisy.modules.doramcu.traveller.MercenaryUnit;
+import com.yisy.modules.doramcu.traveller.MissionType;
+import com.yisy.modules.doramcu.traveller.ShipCombatStatus;
+import com.yisy.modules.doramcu.traveller.ShipDesign;
+import com.yisy.modules.doramcu.traveller.ShipToShipBattle;
+import com.yisy.modules.doramcu.traveller.UnitType;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -185,5 +196,192 @@ public class CombatResolver {
         return context.getBattles().values().stream()
                 .filter(b -> b.getState() == Battle.BattleState.COMPLETED)
                 .collect(Collectors.toList());
+    }
+
+    // ============================================================
+    // Traveller Combat System Delegation
+    // ============================================================
+
+    /**
+     * Result of a Traveller-style combat resolution.
+     */
+    public static class CombatResult {
+        private final CombatType type;
+        private final String winner;
+        private final String loser;
+        private final int attackerDamage;
+        private final int defenderDamage;
+        private final String details;
+
+        public CombatResult(CombatType type, String winner, String loser,
+                            int attackerDamage, int defenderDamage, String details) {
+            this.type = type;
+            this.winner = winner;
+            this.loser = loser;
+            this.attackerDamage = attackerDamage;
+            this.defenderDamage = defenderDamage;
+            this.details = details;
+        }
+
+        public CombatType getType() { return type; }
+        public String getWinner() { return winner; }
+        public String getLoser() { return loser; }
+        public int getAttackerDamage() { return attackerDamage; }
+        public int getDefenderDamage() { return defenderDamage; }
+        public String getDetails() { return details; }
+
+        @Override
+        public String toString() {
+            return String.format("CombatResult{type=%s, winner='%s', loser='%s', attackerDmg=%d, defenderDmg=%d}",
+                    type, winner, loser, attackerDamage, defenderDamage);
+        }
+    }
+
+    /**
+     * Types of combat systems available.
+     */
+    public enum CombatType {
+        /** Hex fleet-vs-fleet combat using Battle system. */
+        FLEET_BATTLE,
+        /** Traveller ship-to-ship combat using ShipToShipBattle. */
+        SHIP_DUEL,
+        /** High Guard naval combat using HighGuardShipCombat. */
+        HIGH_GUARD_NAVAL,
+        /** Mercenary abstract ground combat using AbstractBattle. */
+        GROUND_COMBAT
+    }
+
+    /**
+     * Resolves combat between two Traveller ShipDesigns using ShipToShipBattle.
+     * <p>
+     * Converts each design to a ShipCombatStatus and runs the battle to completion.
+     * </p>
+     *
+     * @param attackerDesign the attacking ship design
+     * @param defenderDesign the defending ship design
+     * @return the combat result
+     */
+    public CombatResult resolveShipDesignCombat(ShipDesign attackerDesign, ShipDesign defenderDesign) {
+        if (attackerDesign == null) {
+            throw new IllegalArgumentException("Attacker design must not be null");
+        }
+        if (defenderDesign == null) {
+            throw new IllegalArgumentException("Defender design must not be null");
+        }
+
+        List<ShipCombatStatus> side0 = new ArrayList<>();
+        side0.add(new ShipCombatStatus(attackerDesign, attackerDesign.getName(), 0));
+        List<ShipCombatStatus> side1 = new ArrayList<>();
+        side1.add(new ShipCombatStatus(defenderDesign, defenderDesign.getName(), 1));
+
+        ShipToShipBattle battle = new ShipToShipBattle(side0, side1);
+        ShipToShipBattle.BattleResult result = battle.fightToCompletion();
+
+        String winner;
+        String loser;
+        switch (result.getOutcome()) {
+            case SIDE_0_VICTORY:
+                winner = attackerDesign.getName();
+                loser = defenderDesign.getName();
+                break;
+            case SIDE_1_VICTORY:
+                winner = defenderDesign.getName();
+                loser = attackerDesign.getName();
+                break;
+            case MUTUAL_DESTRUCTION:
+            default:
+                winner = "Draw";
+                loser = "Draw";
+                break;
+        }
+
+        return new CombatResult(CombatType.SHIP_DUEL, winner, loser, 0, 0,
+                result.getOutcome().name() + " in " + result.getTotalRounds() + " rounds");
+    }
+
+    /**
+     * Resolves combat between two High Guard ShipDesigns using HighGuardShipCombat.
+     *
+     * @param attackerDesign the attacking ship design
+     * @param defenderDesign the defending ship design
+     * @return the combat result
+     */
+    public CombatResult resolveHighGuardCombat(HighGuardShipDesign attackerDesign, HighGuardShipDesign defenderDesign) {
+        if (attackerDesign == null) {
+            throw new IllegalArgumentException("Attacker design must not be null");
+        }
+        if (defenderDesign == null) {
+            throw new IllegalArgumentException("Defender design must not be null");
+        }
+
+        HighGuardShipCombat combat = new HighGuardShipCombat(attackerDesign, defenderDesign,
+                HighGuardRangeBand.MEDIUM);
+        HighGuardShipCombat.CombatOutcome outcome = combat.fightToCompletion();
+
+        String winner;
+        String loser;
+        switch (outcome) {
+            case SIDE_0_VICTORY:
+                winner = attackerDesign.getName();
+                loser = defenderDesign.getName();
+                break;
+            case SIDE_1_VICTORY:
+                winner = defenderDesign.getName();
+                loser = attackerDesign.getName();
+                break;
+            case MUTUAL_DESTRUCTION:
+            default:
+                winner = "Draw";
+                loser = "Draw";
+                break;
+        }
+
+        return new CombatResult(CombatType.HIGH_GUARD_NAVAL, winner, loser, 0, 0,
+                outcome.name());
+    }
+
+    /**
+     * Resolves ground combat between two Mercenary units using AbstractBattle.
+     * <p>
+     * Converts each unit to a BattleForce and runs the abstract battle to completion.
+     * </p>
+     *
+     * @param attackerUnit the attacking mercenary unit
+     * @param defenderUnit the defending mercenary unit
+     * @return the combat result
+     */
+    public CombatResult resolveGroundCombat(MercenaryUnit attackerUnit, MercenaryUnit defenderUnit) {
+        if (attackerUnit == null) {
+            throw new IllegalArgumentException("Attacker unit must not be null");
+        }
+        if (defenderUnit == null) {
+            throw new IllegalArgumentException("Defender unit must not be null");
+        }
+
+        AbstractBattle.BattleForce ownForce = new AbstractBattle.BattleForce(
+                MissionType.COMMANDO, 11, attackerUnit.getUnitType(),
+                attackerUnit.getLeadershipBonus(), attackerUnit.getStrength(),
+                true);
+        AbstractBattle.BattleForce enemyForce = new AbstractBattle.BattleForce(
+                MissionType.COMMANDO, 11, defenderUnit.getUnitType(),
+                defenderUnit.getLeadershipBonus(), defenderUnit.getStrength(),
+                true);
+
+        AbstractBattle battle = new AbstractBattle(ownForce, enemyForce);
+        boolean ownWon = battle.resolve();
+
+        String winner;
+        String loser;
+        if (ownWon) {
+            winner = attackerUnit.getName();
+            loser = defenderUnit.getName();
+        } else {
+            winner = defenderUnit.getName();
+            loser = attackerUnit.getName();
+        }
+
+        return new CombatResult(CombatType.GROUND_COMBAT, winner, loser,
+                enemyForce.getCasualties(), ownForce.getCasualties(),
+                ownWon ? "Attacker victory" : "Defender victory");
     }
 }

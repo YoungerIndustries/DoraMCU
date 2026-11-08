@@ -3,6 +3,8 @@ package com.yisy.modules.doramcu.controller;
 import com.yisy.modules.doramcu.model.User;
 import com.yisy.modules.doramcu.repository.GalaxyRepository;
 import com.yisy.modules.doramcu.repository.PlayerRepository;
+import com.yisy.modules.doramcu.repository.SectorRepository;
+import com.yisy.modules.doramcu.repository.SubSectorRepository;
 import com.yisy.modules.doramcu.repository.UserRepository;
 import com.yisy.modules.doramcu.service.GalaxyProgressService;
 import com.yisy.modules.doramcu.service.GalaxyService;
@@ -47,6 +49,12 @@ class AdminControllerTest {
     private GalaxyRepository galaxyRepository;
 
     @Mock
+    private SectorRepository sectorRepository;
+
+    @Mock
+    private SubSectorRepository subSectorRepository;
+
+    @Mock
     private GalaxyService galaxyService;
 
     @Mock
@@ -72,7 +80,7 @@ class AdminControllerTest {
     @BeforeEach
     void setUp() {
         adminController = new AdminController(userRepository, passwordEncoder,
-                galaxyRepository, galaxyService, galaxyProgressService, playerRepository,
+                galaxyRepository, sectorRepository, subSectorRepository, galaxyService, galaxyProgressService, playerRepository,
                 turnScheduler, gameSessionService, doraAiLearningService);
         // Reflectively set the logFileName to a temp file
         try {

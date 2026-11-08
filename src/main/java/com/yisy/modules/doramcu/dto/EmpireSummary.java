@@ -17,6 +17,14 @@ public class EmpireSummary {
     private Integer capitalPlanetId;
     private int planetCount;
     private int fleetCount;
+
+    // ---- Location Information ----
+    private Integer capitalSystemId;
+    private Integer capitalSectorRow;
+    private Integer capitalSectorCol;
+    private Integer capitalSubSectorRow;
+    private Integer capitalSubSectorCol;
+
     private int industrialCapacity;
     private int industrialPlanetCount;
 
@@ -42,6 +50,15 @@ public class EmpireSummary {
     private int researchOutput;
     private int facilityDefenseBonus;
     private int creditIncome;
+
+    // ---- Empire Status ----
+    private double empireIntegrity;    // 0-100 percentage
+    private int militaryPower;         // total fleet damage
+    private int shipQueueSize;         // number of ships in build queue
+    private int activeBattlesCount;    // number of active battles
+
+    // ---- Mercenary Component (Traveller RPG) ----
+    private MercenarySummaryDto mercenarySummary;
 
     public EmpireSummary() {
     }
@@ -160,4 +177,45 @@ public class EmpireSummary {
     public void setFacilityDefenseBonus(int facilityDefenseBonus) { this.facilityDefenseBonus = facilityDefenseBonus; }
     public int getCreditIncome() { return creditIncome; }
     public void setCreditIncome(int creditIncome) { this.creditIncome = creditIncome; }
+
+    // ---- Location Information ----
+
+    public Integer getCapitalSystemId() { return capitalSystemId; }
+    public void setCapitalSystemId(Integer capitalSystemId) { this.capitalSystemId = capitalSystemId; }
+
+    public Integer getCapitalSectorRow() { return capitalSectorRow; }
+    public void setCapitalSectorRow(Integer capitalSectorRow) { this.capitalSectorRow = capitalSectorRow; }
+
+    public Integer getCapitalSectorCol() { return capitalSectorCol; }
+    public void setCapitalSectorCol(Integer capitalSectorCol) { this.capitalSectorCol = capitalSectorCol; }
+
+    public Integer getCapitalSubSectorRow() { return capitalSubSectorRow; }
+    public void setCapitalSubSectorRow(Integer capitalSubSectorRow) { this.capitalSubSectorRow = capitalSubSectorRow; }
+
+    public Integer getCapitalSubSectorCol() { return capitalSubSectorCol; }
+    public void setCapitalSubSectorCol(Integer capitalSubSectorCol) { this.capitalSubSectorCol = capitalSubSectorCol; }
+
+    // ---- Empire Status ----
+
+    public double getEmpireIntegrity() { return empireIntegrity; }
+    public void setEmpireIntegrity(double empireIntegrity) { this.empireIntegrity = empireIntegrity; }
+
+    public int getMilitaryPower() { return militaryPower; }
+    public void setMilitaryPower(int militaryPower) { this.militaryPower = militaryPower; }
+
+    public int getShipQueueSize() { return shipQueueSize; }
+    public void setShipQueueSize(int shipQueueSize) { this.shipQueueSize = shipQueueSize; }
+
+    public int getActiveBattlesCount() { return activeBattlesCount; }
+    public void setActiveBattlesCount(int activeBattlesCount) { this.activeBattlesCount = activeBattlesCount; }
+
+    // ---- Mercenary Component ----
+
+    public MercenarySummaryDto getMercenarySummary() {
+        return mercenarySummary;
+    }
+
+    public void setMercenarySummary(MercenarySummaryDto mercenarySummary) {
+        this.mercenarySummary = mercenarySummary;
+    }
 }

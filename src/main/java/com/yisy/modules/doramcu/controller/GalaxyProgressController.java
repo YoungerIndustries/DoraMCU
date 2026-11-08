@@ -16,7 +16,7 @@ import java.util.UUID;
  * </p>
  */
 @RestController
-@RequestMapping("/api/v1/galaxy")
+@RequestMapping("/api/v1/4x/galaxy")
 public class GalaxyProgressController {
 
     private final GalaxyProgressService galaxyProgressService;

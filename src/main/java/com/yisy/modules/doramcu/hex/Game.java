@@ -1,12 +1,16 @@
 package com.yisy.modules.doramcu.hex;
 
+import com.yisy.modules.doramcu.unified.GameEngine;
+import com.yisy.modules.doramcu.hex.manager.CharacterManager;
 import com.yisy.modules.doramcu.hex.manager.CombatResolver;
 import com.yisy.modules.doramcu.hex.manager.FacilityConstructionManager;
 import com.yisy.modules.doramcu.hex.manager.FleetManager;
 import com.yisy.modules.doramcu.hex.manager.GalaxyManager;
 import com.yisy.modules.doramcu.hex.manager.GameContext;
+import com.yisy.modules.doramcu.hex.manager.MercenaryIncomeManager;
 import com.yisy.modules.doramcu.hex.manager.PlanetManager;
 import com.yisy.modules.doramcu.hex.manager.ResourceManager;
+import com.yisy.modules.doramcu.hex.manager.TradeManager;
 import com.yisy.modules.doramcu.hex.manager.TurnManager;
 import com.yisy.modules.doramcu.hex.Player;
 import com.yisy.modules.doramcu.hex.ShipOrder;
@@ -24,6 +28,7 @@ import java.util.stream.Collectors;
  * <p>
  * The Game class acts as a thin coordinator that delegates to specialized manager classes:
  * <ul>
+ *   <li>{@link CharacterManager} - Traveller character creation and career progression</li>
  *   <li>{@link TurnManager} - turn progression and end-of-turn processing</li>
  *   <li>{@link ResourceManager} - ship affordability and build queuing</li>
  *   <li>{@link FleetManager} - fleet creation and ship factories</li>
@@ -37,7 +42,7 @@ import java.util.stream.Collectors;
  * (players, planets, fleets, etc.) for all manager classes.
  * </p>
  */
-public class Game implements GameContext {
+public class Game implements GameContext, GameEngine {
 
     private final String name;
     private final List<Player> players = new ArrayList<>();
@@ -50,8 +55,8 @@ public class Game implements GameContext {
     private final List<SpaceStation> spaceStations = new ArrayList<>();
     private final Map<Integer, Empire> empires = new HashMap<>();
 
-    /** Default turn duration in seconds (5 seconds for faster testing). */
-    public static final long DEFAULT_TURN_DURATION = 5;
+    /** Default turn duration in seconds (30 seconds = one in-game day). */
+    public static final long DEFAULT_TURN_DURATION = 30;
 
     /** Current game time in seconds since game start. */
     private long currentTime;
@@ -67,7 +72,8 @@ public class Game implements GameContext {
     private int nextBattleId = 1;
     private int nextSolarSystemId = 1;
     private int nextEmpireId = 1;
-    private final Random random = new Random();
+    private final Random random;
+    private final long randomSeed;
 
     /** Empire integrity calculator with cached results. */
     private final EmpireIntegrityCalculator integrityCalculator = new EmpireIntegrityCalculator();
@@ -76,6 +82,7 @@ public class Game implements GameContext {
     private final GameStateSerializer gameStateSerializer = new GameStateSerializer();
 
     // Manager instances
+    private final CharacterManager characterManager;
     private final TurnManager turnManager;
     private final ResourceManager resourceManager;
     private final FleetManager fleetManager;
@@ -83,6 +90,8 @@ public class Game implements GameContext {
     private final GalaxyManager galaxyManager;
     private final PlanetManager planetManager;
     private final FacilityConstructionManager facilityConstructionManager;
+    private final TradeManager tradeManager;
+    private final MercenaryIncomeManager mercenaryIncomeManager;
 
     /**
      * Creates a new game with the given name.
@@ -90,16 +99,30 @@ public class Game implements GameContext {
      * @param name the name of this game
      */
     public Game(String name) {
+        this(name, 0);
+    }
+
+    /**
+     * Creates a new game with the given name and random seed.
+     * A non-zero seed enables reproducible game outcomes for debugging and replay.
+     *
+     * @param name the name of this game
+     * @param randomSeed the seed for the random number generator (0 for non-deterministic)
+     */
+    public Game(String name, long randomSeed) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Game name must not be null or blank");
         }
         this.name = name;
+        this.randomSeed = randomSeed;
+        this.random = randomSeed != 0 ? new Random(randomSeed) : new Random();
         this.currentTime = 0;
         this.turnDuration = DEFAULT_TURN_DURATION;
         this.currentPlayerIndex = 0;
         this.gameEnded = false;
 
         // Initialize managers
+        this.characterManager = new CharacterManager(this);
         this.turnManager = new TurnManager(this);
         this.resourceManager = new ResourceManager(this);
         this.fleetManager = new FleetManager(this);
@@ -107,6 +130,8 @@ public class Game implements GameContext {
         this.galaxyManager = new GalaxyManager(this);
         this.planetManager = new PlanetManager(this);
         this.facilityConstructionManager = new FacilityConstructionManager(this);
+        this.tradeManager = new TradeManager(this);
+        this.mercenaryIncomeManager = new MercenaryIncomeManager(this);
     }
 
     // ============================================================
@@ -277,6 +302,16 @@ public class Game implements GameContext {
         fleets.put(fleetId, fleet);
         owner.addFleet(fleetId);
         return fleet;
+    }
+
+    /**
+     * Removes a fleet from the game.
+     *
+     * @param fleetId the fleet ID to remove
+     * @return the removed fleet, or null if not found
+     */
+    public Fleet removeFleet(int fleetId) {
+        return fleets.remove(fleetId);
     }
 
     @Override
@@ -454,7 +489,6 @@ public class Game implements GameContext {
     public Player createPlayer(String name) {
         int id = players.size();
         Player player = new Player(id, name);
-        player.setEmpireName(name);
         addPlayer(player);
         return player;
     }
@@ -469,9 +503,102 @@ public class Game implements GameContext {
      */
     public Player createPlayer(int id, String name) {
         Player player = new Player(id, name);
-        player.setEmpireName(name);
         addPlayer(player);
         return player;
+    }
+
+    /**
+     * Result of setting up a new player, containing the player, empire, and starting fleets.
+     */
+    public static class PlayerSetupResult {
+        private final Player player;
+        private final Empire empire;
+        private final List<Fleet> startingFleets;
+
+        public PlayerSetupResult(Player player, Empire empire, List<Fleet> startingFleets) {
+            this.player = player;
+            this.empire = empire;
+            this.startingFleets = startingFleets;
+        }
+
+        public Player getPlayer() {
+            return player;
+        }
+
+        public Empire getEmpire() {
+            return empire;
+        }
+
+        public List<Fleet> getStartingFleets() {
+            return startingFleets;
+        }
+    }
+
+    /**
+     * Sets up a new player with a complete starting configuration:
+     * <ul>
+     *   <li>Creates the player and adds them to the game</li>
+     *   <li>Assigns a unique empire ID and creates an Empire instance</li>
+     *   <li>Sets up a home system with starting facilities</li>
+     *   <li>Creates starting fleets (military and mining)</li>
+     *   <li>Synchronizes fleets to the Empire navy</li>
+     *   <li>Synchronizes planets to the Empire</li>
+     *   <li>Sets the Empire capital planet</li>
+     * </ul>
+     *
+     * @param playerId the player ID (e.g., session player ID)
+     * @param playerName the player name
+     * @return the setup result containing the player, empire, and starting fleets
+     */
+    public PlayerSetupResult setupPlayer(int playerId, String playerName) {
+        return setupPlayer(playerId, playerName, PlanetSize.MEDIUM, MineralQuality.NORMAL,
+                StartingFacility.COLONY_DOME, StartingFacility.SHIPYARD, StartingFacility.MINING_FACILITY);
+    }
+
+    /**
+     * Sets up a new player with a complete starting configuration and custom planet properties.
+     *
+     * @param playerId the player ID
+     * @param playerName the player name
+     * @param size the home planet size
+     * @param mineralQuality the home planet mineral quality
+     * @param facilities the starting facilities to build
+     * @return the setup result containing the player, empire, and starting fleets
+     */
+    public PlayerSetupResult setupPlayer(int playerId, String playerName, PlanetSize size,
+                                         MineralQuality mineralQuality, StartingFacility... facilities) {
+        // 1. Create the player
+        Player player = createPlayer(playerId, playerName);
+
+        // 2. Assign a unique empire ID
+        int newEmpireId = getNextEmpireIdAndIncrement();
+        player.setEmpireId(newEmpireId);
+
+        // 3. Create and register an Empire for this player
+        Empire empire = new Empire(newEmpireId, playerName + " Empire", player.getId());
+        registerEmpire(empire);
+
+        // 4. Set up home system with starting facilities
+        Planet homePlanet = setupHomeSystem(player, size, mineralQuality, facilities);
+
+        // 5. Synchronize the home planet to the Empire
+        if (homePlanet != null) {
+            empire.claimPlanet(homePlanet.getId());
+            empire.setCapitalPlanet(homePlanet.getId());
+
+            // Sync the home planet's starting facilities to the Empire facilities component
+            for (StartingFacility facility : homePlanet.getStartingFacilities()) {
+                empire.getFacilities().buildFacility(homePlanet.getId(), facility);
+            }
+        }
+
+        // 6. Create starting fleets and sync to Empire navy
+        List<Fleet> startingFleets = createStartingFleets(player);
+        for (Fleet fleet : startingFleets) {
+            empire.getNavy().addFleet(fleet);
+        }
+
+        return new PlayerSetupResult(player, empire, startingFleets);
     }
 
     /**
@@ -953,6 +1080,11 @@ public class Game implements GameContext {
 
     // ---- Manager accessors (for external code that needs direct access) ----
 
+    /** Returns the CharacterManager instance. */
+    public CharacterManager getCharacterManager() {
+        return characterManager;
+    }
+
     /** Returns the TurnManager instance. */
     public TurnManager getTurnManager() {
         return turnManager;
@@ -983,6 +1115,16 @@ public class Game implements GameContext {
         return planetManager;
     }
 
+    /** Returns the TradeManager instance. */
+    public TradeManager getTradeManager() {
+        return tradeManager;
+    }
+
+    /** Returns the MercenaryIncomeManager instance. */
+    public MercenaryIncomeManager getMercenaryIncomeManager() {
+        return mercenaryIncomeManager;
+    }
+
     /**
      * Serializes the essential game state to a JSON-compatible Map.
      * <p>
@@ -997,9 +1139,54 @@ public class Game implements GameContext {
         return gameStateSerializer.serialize(this);
     }
 
+    /**
+     * Returns the random seed used for this game (0 = non-deterministic).
+     */
+    public long getRandomSeed() {
+        return randomSeed;
+    }
+
+    // ---- Traveller RPG Integration Methods ----
+
+    /**
+     * Creates a ship from a Traveller ship design.
+     * @param player the player creating the ship
+     * @param request the ship design request
+     * @return the new ship ID
+     */
+    public int createShipFromDesign(Player player, com.yisy.modules.doramcu.dto.ShipDesignRequest request) {
+        // Use TravellerShipFactory to convert design to ship
+        int shipId = fleetManager.createShipFromDesign(player, request);
+        return shipId;
+    }
+
+    /**
+     * Buys a commodity at a world.
+     * @param player the player buying
+     * @param worldId the world ID
+     * @param commodity the commodity name
+     * @param quantity the quantity to buy
+     * @return the total cost in credits
+     */
+    public int buyCommodity(Player player, int worldId, String commodity, int quantity) {
+        return tradeManager.buyCommodity(player, worldId, commodity, quantity);
+    }
+
+    /**
+     * Sells a commodity at a world.
+     * @param player the player selling
+     * @param worldId the world ID
+     * @param commodity the commodity name
+     * @param quantity the quantity to sell
+     * @return the total revenue in credits
+     */
+    public int sellCommodity(Player player, int worldId, String commodity, int quantity) {
+        return tradeManager.sellCommodity(player, worldId, commodity, quantity);
+    }
+
     @Override
     public String toString() {
-        return String.format("Game{name='%s', time=%ds (turn %d), players=%d, galaxies=%d, planets=%d, fleets=%d, battles=%d}",
-                name, currentTime, getCurrentTurn(), players.size(), galaxies.size(), planets.size(), fleets.size(), battles.size());
+        return String.format("Game{name='%s', time=%ds (turn %d), players=%d, galaxies=%d, planets=%d, fleets=%d, battles=%d, seed=%d}",
+                name, currentTime, getCurrentTurn(), players.size(), galaxies.size(), planets.size(), fleets.size(), battles.size(), randomSeed);
     }
 }

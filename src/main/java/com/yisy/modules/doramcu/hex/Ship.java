@@ -211,10 +211,10 @@ public class Ship {
     /**
      * Returns the AI Core level (1-3), or 0 if no AI Core is installed.
      *
-     * @return the AI Core level
+     * @return the AI Core level (1-based: BASIC=1, ADVANCED=2, ELITE=3)
      */
     public int getAiCoreLevel() {
-        return aiCore != null ? aiCore.getLevel() : 0;
+        return aiCore != null ? aiCore.getTier().ordinal() + 1 : 0;
     }
 
     // ---- HullModule integration (delegated to ShipHull) ----

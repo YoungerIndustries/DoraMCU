@@ -14,12 +14,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.yisy.modules.doramcu.DoraMcuApplication;
+import com.yisy.modules.doramcu.DoraMcuLauncher;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(classes = DoraMcuApplication.class)
+@SpringBootTest(classes = DoraMcuLauncher.class)
 @ActiveProfiles("test")
 @DisplayName("Authentication Integration Tests")
 class AuthenticationIntegrationTest {
@@ -66,7 +66,7 @@ class AuthenticationIntegrationTest {
     @Test
     @DisplayName("POST /auth/login - should return token with valid credentials")
     void login_success() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/login")
+        mockMvc.perform(post("/api/v1/4x/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"admin\",\"password\":\"admin123\"}"))
                 .andExpect(status().isOk())
@@ -77,7 +77,7 @@ class AuthenticationIntegrationTest {
     @Test
     @DisplayName("POST /auth/login - should return 400 with invalid password")
     void login_invalidPassword() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/login")
+        mockMvc.perform(post("/api/v1/4x/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"admin\",\"password\":\"wrongpassword\"}"))
                 .andExpect(status().isBadRequest());
@@ -86,7 +86,7 @@ class AuthenticationIntegrationTest {
     @Test
     @DisplayName("POST /auth/login - should return 400 with non-existent user")
     void login_nonExistentUser() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/login")
+        mockMvc.perform(post("/api/v1/4x/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"unknown\",\"password\":\"password\"}"))
                 .andExpect(status().isBadRequest());
@@ -95,7 +95,7 @@ class AuthenticationIntegrationTest {
     @Test
     @DisplayName("POST /auth/login - should return 400 with empty username")
     void login_emptyUsername() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/login")
+        mockMvc.perform(post("/api/v1/4x/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"\",\"password\":\"admin123\"}"))
                 .andExpect(status().isBadRequest());
@@ -104,7 +104,7 @@ class AuthenticationIntegrationTest {
     @Test
     @DisplayName("POST /auth/login - should return 400 with empty password")
     void login_emptyPassword() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/login")
+        mockMvc.perform(post("/api/v1/4x/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"admin\",\"password\":\"\"}"))
                 .andExpect(status().isBadRequest());
@@ -113,7 +113,7 @@ class AuthenticationIntegrationTest {
     @Test
     @DisplayName("POST /auth/login - should return 400 with missing username")
     void login_missingUsername() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/login")
+        mockMvc.perform(post("/api/v1/4x/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"password\":\"admin123\"}"))
                 .andExpect(status().isBadRequest());
@@ -122,7 +122,7 @@ class AuthenticationIntegrationTest {
     @Test
     @DisplayName("POST /auth/login - should return 400 with missing password")
     void login_missingPassword() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/login")
+        mockMvc.perform(post("/api/v1/4x/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"admin\"}"))
                 .andExpect(status().isBadRequest());
@@ -132,7 +132,7 @@ class AuthenticationIntegrationTest {
     @DisplayName("POST /auth/login - should return 200 and use token to access protected endpoint")
     void login_thenAccessProtectedEndpoint() throws Exception {
         // Login and extract token
-        String response = mockMvc.perform(post("/api/v1/auth/login")
+        String response = mockMvc.perform(post("/api/v1/4x/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"admin\",\"password\":\"admin123\"}"))
                 .andExpect(status().isOk())
@@ -145,17 +145,17 @@ class AuthenticationIntegrationTest {
 
         // Use token to access protected endpoint
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                        .get("/api/v1/admin/server/status")
+                        .get("/api/v1/4x/admin/server/status")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.uptime").isString());
     }
 
     @Test
-    @DisplayName("GET /api/v1/auth/server-info - should return server cluster details")
+    @DisplayName("GET /api/v1/4x/auth/server-info - should return server cluster details")
     void serverInfo_success() throws Exception {
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                        .get("/api/v1/auth/server-info"))
+                        .get("/api/v1/4x/auth/server-info"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.serverName").value("DoraMCU Galactic Cluster Alpha"))
                 .andExpect(jsonPath("$.status").value("ONLINE"))
@@ -163,9 +163,9 @@ class AuthenticationIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/auth/pin-login - should authenticate player with valid PIN")
+    @DisplayName("POST /api/v1/4x/auth/pin-login - should authenticate player with valid PIN")
     void pinLogin_success() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/pin-login")
+        mockMvc.perform(post("/api/v1/4x/auth/pin-login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"pin\":\"123456\"}"))
                 .andExpect(status().isOk())
@@ -175,9 +175,9 @@ class AuthenticationIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/auth/pin-login - should return 400 for invalid PIN")
+    @DisplayName("POST /api/v1/4x/auth/pin-login - should return 400 for invalid PIN")
     void pinLogin_invalidPin() throws Exception {
-        mockMvc.perform(post("/api/v1/auth/pin-login")
+        mockMvc.perform(post("/api/v1/4x/auth/pin-login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"pin\":\"999999\"}"))
                 .andExpect(status().isBadRequest())

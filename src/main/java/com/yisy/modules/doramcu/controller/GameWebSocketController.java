@@ -15,10 +15,11 @@ import java.io.IOException;
 import java.util.NoSuchElementException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 @RestController
-@RequestMapping("/ws/v1/game")
+@RequestMapping("/ws/v1/4x/game")
 public class GameWebSocketController {
 
     private static final Logger log = LoggerFactory.getLogger(GameWebSocketController.class);
@@ -75,7 +76,7 @@ public class GameWebSocketController {
             }
 
             // Start heartbeat to keep the connection alive
-            heartbeatExecutor.scheduleAtFixedRate(() -> {
+            ScheduledFuture<?> heartbeatFuture = heartbeatExecutor.scheduleAtFixedRate(() -> {
                 try {
                     emitter.send(SseEmitter.event()
                             .name("heartbeat")
@@ -85,6 +86,9 @@ public class GameWebSocketController {
                     session.unregisterEmitter(playerId);
                 }
             }, HEARTBEAT_INTERVAL, HEARTBEAT_INTERVAL, TimeUnit.MILLISECONDS);
+
+            // Register the future so it can be cancelled when emitter is unregistered
+            session.registerHeartbeatFuture(playerId, heartbeatFuture);
 
         } catch (Exception e) {
             log.error("Failed to register SSE emitter", e);

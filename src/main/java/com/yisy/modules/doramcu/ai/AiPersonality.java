@@ -6,137 +6,151 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Defines the personality profile of an AI-controlled empire.
+ * Represents the personality profile of an AI empire, derived from the player's
+ * government type and ethos.
  * <p>
- * Each personality is derived from the combination of a {@link Player.GovernmentType}
- * and {@link Player.Ethos}, producing unique decision-making weights that shape
- * how the AI behaves strategically and tactically.
- * </p>
- * <p>
- * The 8 GovernmentTypes × 6 Ethos types yield 48 possible personality combinations.
- * Each combination defines values on several personality axes:
- * <ul>
- *   <li><b>Aggression</b> (0.0-1.0): Likelihood to engage in combat</li>
- *   <li><b>Expansion drive</b> (0.0-1.0): Priority on territorial growth</li>
- *   <li><b>Economic focus</b> (0.0-1.0): Priority on resource accumulation</li>
- *   <li><b>Scientific focus</b> (0.0-1.0): Priority on research</li>
- *   <li><b>Diplomatic stance</b> (0.0-1.0): Willingness to cooperate</li>
- *   <li><b>Risk tolerance</b> (0.0-1.0): Willingness to take risky actions</li>
- * </ul>
+ * Personality traits range from 0.0 to 1.0 and influence how the AI evaluates
+ * and selects actions during decision making.
  * </p>
  */
 public class AiPersonality {
 
     private final Player.GovernmentType governmentType;
     private final Player.Ethos ethos;
+
+    /** Aggression level: how likely the AI is to engage in combat. */
     private final double aggression;
+
+    /** Expansion drive: how likely the AI is to explore and expand. */
     private final double expansionDrive;
+
+    /** Economic focus: how likely the AI is to invest in economy. */
     private final double economicFocus;
+
+    /** Scientific focus: how likely the AI is to invest in research. */
     private final double scientificFocus;
+
+    /** Diplomatic stance: how likely the AI is to pursue diplomacy. */
     private final double diplomaticStance;
+
+    /** Risk tolerance: how likely the AI is to take risky actions. */
     private final double riskTolerance;
 
+    /** Human-readable label for this personality. */
+    private final String label;
+
     /**
-     * Constructs an AiPersonality from government type and ethos.
+     * Creates an AiPersonality from a GovernmentType and Ethos.
+     * <p>
+     * Personality traits are derived from the combination of government type and ethos,
+     * producing deterministic but varied profiles for each combination.
+     * </p>
      *
-     * @param governmentType the government type of the empire
-     * @param ethos the ethos of the empire
+     * @param governmentType the government type
+     * @param ethos the ethos
      */
     public AiPersonality(Player.GovernmentType governmentType, Player.Ethos ethos) {
         this.governmentType = governmentType;
         this.ethos = ethos;
-        double[] weights = computeWeights(governmentType, ethos);
-        this.aggression = weights[0];
-        this.expansionDrive = weights[1];
-        this.economicFocus = weights[2];
-        this.scientificFocus = weights[3];
-        this.diplomaticStance = weights[4];
-        this.riskTolerance = weights[5];
-    }
 
-    /**
-     * Computes the personality weights for a given government type and ethos combination.
-     *
-     * @param governmentType the government type
-     * @param ethos the ethos
-     * @return array of 6 weights: [aggression, expansion, economic, scientific, diplomatic, risk]
-     */
-    private static double[] computeWeights(Player.GovernmentType governmentType, Player.Ethos ethos) {
-        double[] base = governmentBase(governmentType);
-        double[] modifier = ethosModifier(ethos);
+        // Base traits from government type
+        double baseAggression = 0.4;
+        double baseExpansion = 0.4;
+        double baseEconomic = 0.4;
+        double baseScientific = 0.4;
+        double baseDiplomatic = 0.4;
+        double baseRisk = 0.4;
 
-        double[] result = new double[6];
-        for (int i = 0; i < 6; i++) {
-            result[i] = Math.max(0.0, Math.min(1.0, base[i] + modifier[i]));
-        }
-        return result;
-    }
-
-    /**
-     * Returns the base personality weights for each government type.
-     */
-    private static double[] governmentBase(Player.GovernmentType type) {
-        switch (type) {
+        switch (governmentType) {
             case DICTATORSHIP:
-                return new double[]{0.8, 0.7, 0.4, 0.3, 0.2, 0.8};
+                baseAggression = 0.7;
+                baseRisk = 0.6;
+                baseDiplomatic = 0.2;
+                break;
             case DEMOCRACY:
-                return new double[]{0.4, 0.5, 0.6, 0.5, 0.7, 0.4};
+                baseDiplomatic = 0.6;
+                baseScientific = 0.5;
+                break;
             case MONARCHY:
-                return new double[]{0.6, 0.6, 0.5, 0.4, 0.5, 0.5};
-            case OLIGARCHY:
-                return new double[]{0.5, 0.6, 0.7, 0.4, 0.4, 0.6};
-            case THEOCRACY:
-                return new double[]{0.5, 0.4, 0.3, 0.7, 0.3, 0.5};
-            case AUTHORITARIAN:
-                return new double[]{0.7, 0.7, 0.5, 0.3, 0.2, 0.7};
-            case CONFEDERATION:
-                return new double[]{0.3, 0.4, 0.6, 0.6, 0.8, 0.3};
+                baseExpansion = 0.6;
+                baseAggression = 0.5;
+                break;
             case CORPORATE:
-                return new double[]{0.4, 0.6, 0.9, 0.5, 0.5, 0.6};
+                baseEconomic = 0.8;
+                baseRisk = 0.5;
+                break;
+            case CONFEDERATION:
+                baseDiplomatic = 0.8;
+                baseExpansion = 0.5;
+                break;
+            case THEOCRACY:
+                baseScientific = 0.3;
+                baseAggression = 0.5;
+                break;
+            case OLIGARCHY:
+                baseEconomic = 0.6;
+                baseAggression = 0.5;
+                break;
+            case AUTHORITARIAN:
+                baseAggression = 0.6;
+                baseRisk = 0.5;
+                break;
             default:
-                return new double[]{0.5, 0.5, 0.5, 0.5, 0.5, 0.5};
+                break;
         }
-    }
 
-    /**
-     * Returns the ethos modifier that adjusts the base government weights.
-     */
-    private static double[] ethosModifier(Player.Ethos ethos) {
+        // Ethos modifiers
         switch (ethos) {
             case MILITARIST:
-                return new double[]{0.3, 0.2, -0.1, -0.1, -0.2, 0.2};
+                baseAggression += 0.2;
+                baseRisk += 0.1;
+                baseDiplomatic -= 0.1;
+                break;
             case PACIFIST:
-                return new double[]{-0.3, -0.1, 0.1, 0.1, 0.3, -0.2};
+                baseAggression -= 0.2;
+                baseDiplomatic += 0.2;
+                baseRisk -= 0.1;
+                break;
             case MATERIALIST:
-                return new double[]{-0.1, 0.1, 0.2, 0.3, 0.0, 0.1};
+                baseScientific += 0.2;
+                baseEconomic += 0.1;
+                break;
             case SPIRITUALIST:
-                return new double[]{-0.1, 0.0, -0.1, 0.2, 0.1, 0.0};
-            case LIBERTARIAN:
-                return new double[]{-0.1, 0.1, 0.2, 0.0, 0.2, 0.1};
+                baseScientific -= 0.1;
+                baseDiplomatic += 0.1;
+                break;
             case EQUALIST:
-                return new double[]{-0.1, 0.0, 0.1, 0.1, 0.2, -0.1};
+                baseDiplomatic += 0.1;
+                baseEconomic += 0.1;
+                break;
+            case LIBERTARIAN:
+                baseAggression += 0.1;
+                baseRisk += 0.1;
+                break;
             default:
-                return new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+                break;
         }
+
+        this.aggression = Math.max(0.0, Math.min(1.0, baseAggression));
+        this.expansionDrive = Math.max(0.0, Math.min(1.0, baseExpansion));
+        this.economicFocus = Math.max(0.0, Math.min(1.0, baseEconomic));
+        this.scientificFocus = Math.max(0.0, Math.min(1.0, baseScientific));
+        this.diplomaticStance = Math.max(0.0, Math.min(1.0, baseDiplomatic));
+        this.riskTolerance = Math.max(0.0, Math.min(1.0, baseRisk));
+        this.label = governmentType.name() + "_" + ethos.name();
     }
 
     /**
-     * Creates an AiPersonality from a Player's government type and ethos.
+     * Creates an AiPersonality from a Player's attributes.
+     * <p>
+     * Uses the player's government type and ethos to derive personality traits.
+     * </p>
      *
-     * @param player the player to derive the personality from
-     * @return the computed personality
+     * @param player the player to derive personality from
+     * @return a new AiPersonality instance
      */
     public static AiPersonality fromPlayer(Player player) {
-        Player.GovernmentType gov = player.getGovernmentType();
-        Player.Ethos e = player.getEthos();
-        return new AiPersonality(gov, e);
-    }
-
-    /**
-     * Returns a descriptive label for this personality.
-     */
-    public String getLabel() {
-        return governmentType.name() + "_" + ethos.name();
+        return new AiPersonality(player.getGovernmentType(), player.getEthos());
     }
 
     // --- Accessors ---
@@ -173,8 +187,14 @@ public class AiPersonality {
         return riskTolerance;
     }
 
+    public String getLabel() {
+        return label;
+    }
+
     /**
-     * Returns all personality axes as a map for easy access.
+     * Returns all personality axes as a map.
+     *
+     * @return a map of axis name to value
      */
     public Map<String, Double> toMap() {
         Map<String, Double> map = new HashMap<>();
@@ -190,8 +210,7 @@ public class AiPersonality {
     @Override
     public String toString() {
         return "AiPersonality{" +
-                "gov=" + governmentType +
-                ", ethos=" + ethos +
+                "label='" + label + '\'' +
                 ", aggression=" + String.format("%.2f", aggression) +
                 ", expansion=" + String.format("%.2f", expansionDrive) +
                 ", economic=" + String.format("%.2f", economicFocus) +

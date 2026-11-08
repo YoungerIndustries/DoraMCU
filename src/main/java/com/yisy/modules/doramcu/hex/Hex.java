@@ -1,7 +1,7 @@
 package com.yisy.modules.doramcu.hex;
 
-import com.yisy.modules.doramcu.StateMachine;
-
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -29,12 +29,38 @@ import java.util.Objects;
  */
 public class Hex {
 
-    private static final StateMachine<HexState, HexEvent> TEMPLATE = createTemplateStateMachine();
+    // Transition table: maps (state, event) -> newState for fast lookups without StateMachine overhead
+    private static final HexState[][] TRANSITIONS = buildTransitionTable();
+
+    private static HexState[][] buildTransitionTable() {
+        HexState[][] table = new HexState[HexState.values().length][HexEvent.values().length];
+        table[HexState.EMPTY.ordinal()][HexEvent.PLACE.ordinal()] = HexState.OCCUPIED;
+        table[HexState.EMPTY.ordinal()][HexEvent.BLOCK.ordinal()] = HexState.BLOCKED;
+        table[HexState.EMPTY.ordinal()][HexEvent.DESTROY.ordinal()] = HexState.DESTROYED;
+        table[HexState.OCCUPIED.ordinal()][HexEvent.REMOVE.ordinal()] = HexState.EMPTY;
+        table[HexState.OCCUPIED.ordinal()][HexEvent.SELECT.ordinal()] = HexState.SELECTED;
+        table[HexState.OCCUPIED.ordinal()][HexEvent.DESTROY.ordinal()] = HexState.DESTROYED;
+        table[HexState.SELECTED.ordinal()][HexEvent.DESELECT.ordinal()] = HexState.OCCUPIED;
+        table[HexState.SELECTED.ordinal()][HexEvent.DESTROY.ordinal()] = HexState.DESTROYED;
+        table[HexState.BLOCKED.ordinal()][HexEvent.UNBLOCK.ordinal()] = HexState.EMPTY;
+        table[HexState.BLOCKED.ordinal()][HexEvent.DESTROY.ordinal()] = HexState.DESTROYED;
+        table[HexState.DESTROYED.ordinal()][HexEvent.REPAIR.ordinal()] = HexState.EMPTY;
+        return table;
+    }
+
+    private static final List<HexEvent>[] POSSIBLE_EVENTS = new List[HexState.values().length];
+    static {
+        POSSIBLE_EVENTS[HexState.EMPTY.ordinal()] = Arrays.asList(HexEvent.PLACE, HexEvent.BLOCK, HexEvent.DESTROY);
+        POSSIBLE_EVENTS[HexState.OCCUPIED.ordinal()] = Arrays.asList(HexEvent.REMOVE, HexEvent.SELECT, HexEvent.DESTROY);
+        POSSIBLE_EVENTS[HexState.SELECTED.ordinal()] = Arrays.asList(HexEvent.DESELECT, HexEvent.DESTROY);
+        POSSIBLE_EVENTS[HexState.BLOCKED.ordinal()] = Arrays.asList(HexEvent.UNBLOCK, HexEvent.DESTROY);
+        POSSIBLE_EVENTS[HexState.DESTROYED.ordinal()] = Collections.singletonList(HexEvent.REPAIR);
+    }
 
     private final int q;
     private final int r;
     private final int s;
-    private final StateMachine<HexState, HexEvent> stateMachine;
+    private HexState state = HexState.EMPTY;
     private Object payload;
 
     /**
@@ -48,7 +74,6 @@ public class Hex {
         this.q = q;
         this.r = r;
         this.s = s;
-        this.stateMachine = new StateMachine<>(TEMPLATE);
     }
 
     /**
@@ -88,14 +113,14 @@ public class Hex {
      * @return the current state of this hex cell
      */
     public HexState getState() {
-        return stateMachine.getCurrentState();
+        return state;
     }
 
     /**
      * @return true if the hex is in the given state
      */
     public boolean isInState(HexState state) {
-        return stateMachine.isInState(state);
+        return this.state == state;
     }
 
     /**
@@ -105,21 +130,26 @@ public class Hex {
      * @return true if a state transition occurred
      */
     public boolean sendEvent(HexEvent event) {
-        return stateMachine.sendEvent(event);
+        HexState newState = TRANSITIONS[this.state.ordinal()][event.ordinal()];
+        if (newState != null && newState != this.state) {
+            this.state = newState;
+            return true;
+        }
+        return false;
     }
 
     /**
      * @return the list of events that can be processed in the current state
      */
     public List<HexEvent> getPossibleEvents() {
-        return stateMachine.getPossibleEvents();
+        return POSSIBLE_EVENTS[this.state.ordinal()];
     }
 
     /**
      * Resets this hex to its initial state (EMPTY).
      */
     public void reset() {
-        stateMachine.reset();
+        this.state = HexState.EMPTY;
         this.payload = null;
     }
 
@@ -132,7 +162,7 @@ public class Hex {
      * @return true if placed successfully
      */
     public boolean place(Object payload) {
-        if (stateMachine.sendEvent(HexEvent.PLACE)) {
+        if (sendEvent(HexEvent.PLACE)) {
             this.payload = payload;
             return true;
         }
@@ -145,7 +175,7 @@ public class Hex {
      * @return the removed payload, or null if not occupied
      */
     public Object remove() {
-        if (stateMachine.sendEvent(HexEvent.REMOVE)) {
+        if (sendEvent(HexEvent.REMOVE)) {
             Object p = this.payload;
             this.payload = null;
             return p;
@@ -159,7 +189,7 @@ public class Hex {
      * @return true if blocked successfully
      */
     public boolean block() {
-        return stateMachine.sendEvent(HexEvent.BLOCK);
+        return sendEvent(HexEvent.BLOCK);
     }
 
     /**
@@ -168,7 +198,7 @@ public class Hex {
      * @return true if unblocked successfully
      */
     public boolean unblock() {
-        return stateMachine.sendEvent(HexEvent.UNBLOCK);
+        return sendEvent(HexEvent.UNBLOCK);
     }
 
     /**
@@ -177,7 +207,7 @@ public class Hex {
      * @return true if selected successfully
      */
     public boolean select() {
-        return stateMachine.sendEvent(HexEvent.SELECT);
+        return sendEvent(HexEvent.SELECT);
     }
 
     /**
@@ -186,7 +216,7 @@ public class Hex {
      * @return true if deselected successfully
      */
     public boolean deselect() {
-        return stateMachine.sendEvent(HexEvent.DESELECT);
+        return sendEvent(HexEvent.DESELECT);
     }
 
     /**
@@ -291,29 +321,6 @@ public class Hex {
 
     @Override
     public String toString() {
-        return String.format("Hex(%d, %d, %d)[%s]", q, r, s, stateMachine.getCurrentState());
-    }
-
-    // ---- State machine factory ----
-
-    private static StateMachine<HexState, HexEvent> createTemplateStateMachine() {
-        return StateMachine.<HexState, HexEvent>builder()
-                .initialState(HexState.EMPTY)
-
-                // EMPTY transitions
-                .onTransition(HexState.EMPTY, HexEvent.PLACE, HexState.OCCUPIED)
-                .onTransition(HexState.EMPTY, HexEvent.BLOCK, HexState.BLOCKED)
-
-                // OCCUPIED transitions
-                .onTransition(HexState.OCCUPIED, HexEvent.REMOVE, HexState.EMPTY)
-                .onTransition(HexState.OCCUPIED, HexEvent.SELECT, HexState.SELECTED)
-
-                // SELECTED transitions
-                .onTransition(HexState.SELECTED, HexEvent.DESELECT, HexState.OCCUPIED)
-
-                // BLOCKED transitions
-                .onTransition(HexState.BLOCKED, HexEvent.UNBLOCK, HexState.EMPTY)
-
-                .build();
+        return String.format("Hex(%d, %d, %d)[%s]", q, r, s, state);
     }
 }

@@ -148,7 +148,6 @@ public class Moon extends CelestialBody {
         this.tidalStrength = DEFAULT_TIDAL_STRENGTH * moonSize.getTidalMultiplier();
         this.gravityDefenseBonus = DEFAULT_GRAVITY_DEFENSE_BONUS;
         this.parentPlanetId = null;
-        generate();
     }
 
     @Override

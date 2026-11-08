@@ -1,30 +1,25 @@
 package com.yisy.modules.doramcu.hex;
 
 /**
- * Events that trigger state transitions on a hex cell.
+ * Events that trigger state transitions in a {@link Hex} cell's lifecycle.
+ * <p>
+ * Each event is valid only in certain states; invalid transitions are silently ignored.
  */
 public enum HexEvent {
-    /** Place an entity on an empty hex → OCCUPIED */
+    /** Place an entity on an empty hex (EMPTY → OCCUPIED). */
     PLACE,
-
-    /** Remove an entity from an occupied hex → EMPTY */
+    /** Remove the entity from an occupied hex (OCCUPIED → EMPTY). */
     REMOVE,
-
-    /** Block an empty hex so it cannot be occupied → BLOCKED */
-    BLOCK,
-
-    /** Unblock a blocked hex → EMPTY */
-    UNBLOCK,
-
-    /** Select an occupied hex → SELECTED */
+    /** Select an occupied hex (OCCUPIED → SELECTED). */
     SELECT,
-
-    /** Deselect a selected hex → OCCUPIED */
+    /** Deselect a selected hex (SELECTED → OCCUPIED). */
     DESELECT,
-
-    /** Destroy a hex cell → DESTROYED (can be triggered from any state) */
+    /** Block an empty hex so it cannot be occupied (EMPTY → BLOCKED). */
+    BLOCK,
+    /** Unblock a blocked hex (BLOCKED → EMPTY). */
+    UNBLOCK,
+    /** Destroy a hex in any occupied state (→ DESTROYED). */
     DESTROY,
-
-    /** Repair a destroyed hex cell → EMPTY */
+    /** Repair a destroyed hex (DESTROYED → EMPTY). */
     REPAIR
 }

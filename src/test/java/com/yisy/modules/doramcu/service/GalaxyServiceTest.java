@@ -26,6 +26,10 @@ class GalaxyServiceTest {
     @Mock
     private GalaxyRepository galaxyRepository;
     @Mock
+    private SectorRepository sectorRepository;
+    @Mock
+    private SubSectorRepository subSectorRepository;
+    @Mock
     private SolarSystemRepository solarSystemRepository;
     @Mock
     private StarRepository starRepository;
@@ -52,7 +56,7 @@ class GalaxyServiceTest {
 
     @BeforeEach
     void setUp() {
-        galaxyService = new GalaxyService(galaxyRepository, solarSystemRepository, starRepository,
+        galaxyService = new GalaxyService(galaxyRepository, sectorRepository, subSectorRepository, solarSystemRepository, starRepository,
                 planetRepository, moonRepository, asteroidBeltRepository, gasGiantRepository,
                 nebulaRepository, blackHoleRepository, cometRepository, spaceStationRepository, asteroidRepository);
     }

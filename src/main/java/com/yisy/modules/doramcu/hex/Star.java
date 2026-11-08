@@ -277,7 +277,6 @@ public class Star extends CelestialBody {
         this.gravityWellBonus = starSize.getBaseGravityWellBonus();
         this.geometry = new StarGeometry(this);
         setStrategicResource(starType.getStrategicResource());
-        generate();
     }
 
     /**
@@ -303,7 +302,6 @@ public class Star extends CelestialBody {
         this.gravityWellBonus = starType.getGravityWellBonus();
         this.geometry = new StarGeometry(this);
         setStrategicResource(starType.getStrategicResource());
-        generate();
     }
 
     @Override

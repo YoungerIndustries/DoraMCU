@@ -19,6 +19,9 @@ public class SolarSystemGenerator {
     // ID counter for solar system entities
     private int nextSolarSystemEntityId;
 
+    // Whether to generate planets with Traveller UWP data
+    private boolean useTravellerUWP = false;
+
     /**
      * Creates a new solar system generator.
      *
@@ -34,6 +37,15 @@ public class SolarSystemGenerator {
         this.config = config;
         this.progressListener = progressListener;
         this.nextSolarSystemEntityId = 1;
+    }
+
+    /**
+     * Enables or disables Traveller UWP-based planet generation.
+     *
+     * @param useTravellerUWP true to enable UWP generation
+     */
+    public void setUseTravellerUWP(boolean useTravellerUWP) {
+        this.useTravellerUWP = useTravellerUWP;
     }
 
     /**
@@ -59,7 +71,9 @@ public class SolarSystemGenerator {
         // Generate planets orbiting the star
         int planetCount = config.getPlanetsPerSystem() + random.nextInt(3);
         for (int i = 0; i < planetCount; i++) {
-            Planet planet = bodyGenerator.generatePlanet();
+            Planet planet = useTravellerUWP
+                    ? bodyGenerator.generatePlanetWithUWP()
+                    : bodyGenerator.generatePlanet();
             Hex3D planetPos = calculateOrbitPosition(planetCount, i, 10, 8, 5, 3);
 
             SolarSystemEntity planetEntity = new SolarSystemEntity(nextSolarSystemEntityId++);

@@ -1,33 +1,32 @@
 package com.yisy.modules.doramcu.hex;
 
 /**
- * Represents the possible states of a hex cell in a hex map.
+ * Represents the lifecycle state of a {@link Hex} cell.
  * <p>
- * State transitions follow these rules:
- * <ul>
- *   <li>EMPTY → OCCUPIED (place)</li>
- *   <li>EMPTY → BLOCKED (block)</li>
- *   <li>OCCUPIED → EMPTY (remove)</li>
- *   <li>OCCUPIED → SELECTED (select)</li>
- *   <li>SELECTED → OCCUPIED (deselect)</li>
- *   <li>BLOCKED → EMPTY (unblock)</li>
- *   <li>Any → DESTROYED (destroy)</li>
- *   <li>DESTROYED → EMPTY (repair)</li>
- * </ul>
+ * States and transitions:
+ * <pre>
+ *          PLACE        SELECT
+ *  EMPTY ──────► OCCUPIED ──────► SELECTED
+ *   │              │                  │
+ *   │ BLOCK        │ REMOVE           │ DESELECT
+ *   │              │                  │
+ *   ▼              ▼                  ▼
+ *  BLOCKED      EMPTY ◄──────────┘
+ *   │
+ *   │ UNBLOCK
+ *   ▼
+ *  EMPTY
+ * </pre>
  */
 public enum HexState {
-    /** The hex cell is empty and available */
+    /** Cell is empty and available for placement. */
     EMPTY,
-
-    /** The hex cell contains an entity or object */
+    /** Cell is occupied by an entity. */
     OCCUPIED,
-
-    /** The hex cell is blocked and cannot be occupied */
-    BLOCKED,
-
-    /** The hex cell is currently selected (highlighted) */
+    /** Cell is occupied and currently selected. */
     SELECTED,
-
-    /** The hex cell is destroyed and unusable */
+    /** Cell is blocked and cannot be occupied. */
+    BLOCKED,
+    /** Cell is destroyed and must be repaired before use. */
     DESTROYED
 }

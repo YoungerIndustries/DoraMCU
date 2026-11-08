@@ -1,0 +1,129 @@
+Deeplearning4j OOM Exception Encountered for MultiLayerNetwork
+Timestamp:                              2026-11-06 17:21:48.270
+Thread ID                               79
+Thread Name                             scheduling-1
+
+
+Stack Trace:
+java.lang.OutOfMemoryError: Cannot allocate new PointerPointer(32): totalBytes = 0, physicalBytes = 4097M
+	at org.bytedeco.javacpp.PointerPointer.<init>(PointerPointer.java:151)
+	at org.nd4j.linalg.cpu.nativecpu.ops.NativeOpExecutioner.exec(NativeOpExecutioner.java:685)
+	at org.nd4j.linalg.cpu.nativecpu.ops.NativeOpExecutioner.exec(NativeOpExecutioner.java:146)
+	at org.nd4j.linalg.cpu.nativecpu.ops.NativeOpExecutioner.exec(NativeOpExecutioner.java:132)
+	at org.nd4j.linalg.api.ndarray.BaseNDArray.assign(BaseNDArray.java:1329)
+	at org.nd4j.linalg.api.ndarray.BaseNDArray.mmuli(BaseNDArray.java:3213)
+	at org.deeplearning4j.nn.layers.BaseLayer.preOutputWithPreNorm(BaseLayer.java:323)
+	at org.deeplearning4j.nn.layers.BaseLayer.preOutput(BaseLayer.java:296)
+	at org.deeplearning4j.nn.layers.BaseLayer.activate(BaseLayer.java:344)
+	at org.deeplearning4j.nn.layers.AbstractLayer.activate(AbstractLayer.java:262)
+	at org.deeplearning4j.nn.multilayer.MultiLayerNetwork.ffToLayerActivationsInWs(MultiLayerNetwork.java:1147)
+	at org.deeplearning4j.nn.multilayer.MultiLayerNetwork.computeGradientAndScore(MultiLayerNetwork.java:2798)
+	at org.deeplearning4j.nn.multilayer.MultiLayerNetwork.computeGradientAndScore(MultiLayerNetwork.java:2756)
+	at org.deeplearning4j.optimize.solvers.BaseOptimizer.gradientAndScore(BaseOptimizer.java:174)
+	at org.deeplearning4j.optimize.solvers.StochasticGradientDescent.optimize(StochasticGradientDescent.java:61)
+	at org.deeplearning4j.optimize.Solver.optimize(Solver.java:52)
+	at org.deeplearning4j.nn.multilayer.MultiLayerNetwork.fitHelper(MultiLayerNetwork.java:2357)
+	at org.deeplearning4j.nn.multilayer.MultiLayerNetwork.fit(MultiLayerNetwork.java:2315)
+	at org.deeplearning4j.nn.multilayer.MultiLayerNetwork.fit(MultiLayerNetwork.java:2302)
+	at com.yisy.modules.doradl.network.StrategyNetwork.train(StrategyNetwork.java:181)
+	at com.yisy.modules.doradl.dl.service.DoraAiLearningService.trainOnAccumulatedExperience(DoraAiLearningService.java:274)
+	at com.yisy.modules.doradl.dl.service.DoraAiLearningService.scheduledTraining(DoraAiLearningService.java:323)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:104)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:583)
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.runInternal(ScheduledMethodRunnable.java:128)
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.lambda$run$1(ScheduledMethodRunnable.java:122)
+	at io.micrometer.observation.Observation.observe(Observation.java:569)
+	at org.springframework.scheduling.support.ScheduledMethodRunnable.run(ScheduledMethodRunnable.java:122)
+	at org.springframework.scheduling.config.Task$OutcomeTrackingRunnable.run(Task.java:88)
+	at org.springframework.scheduling.support.DelegatingErrorHandlingRunnable.run(DelegatingErrorHandlingRunnable.java:54)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:545)
+	at java.base/java.util.concurrent.FutureTask.runAndReset(FutureTask.java:371)
+	at java.base/java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:310)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1090)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:614)
+	at java.base/java.lang.Thread.run(Thread.java:1527)
+Caused by: java.lang.OutOfMemoryError: Physical memory usage is too high: physicalBytes (4097M) > maxPhysicalBytes (4096M)
+	at org.bytedeco.javacpp.Pointer.deallocator(Pointer.java:733)
+	at org.bytedeco.javacpp.Pointer.init(Pointer.java:126)
+	at org.bytedeco.javacpp.PointerPointer.allocateArray(Native Method)
+	at org.bytedeco.javacpp.PointerPointer.<init>(PointerPointer.java:143)
+	... 35 more
+
+
+========== Memory Information ==========
+----- Version Information -----
+Deeplearning4j Version                  <could not determine>
+Deeplearning4j CUDA                     <not present>
+
+----- System Information -----
+Operating System                        Microsoft Windows 10
+CPU                                     AMD Ryzen 9 270 w/ Radeon 780M Graphics        
+CPU Cores - Physical                    8
+CPU Cores - Logical                     16
+Total System Memory                      15.29 GiB (16421998592)
+
+----- ND4J Environment Information -----
+Data Type                               FLOAT
+blas.vendor                             OPENBLAS
+os                                      Windows 11
+backend                                 CPU
+
+----- Memory Configuration -----
+JVM Memory: XMX                           4.00 GiB (4294967296)
+JVM Memory: current                       3.69 GiB (3957325824)
+JavaCPP Memory: Max Bytes                 2.00 GiB (2147483648)
+JavaCPP Memory: Max Physical              4.00 GiB (4294967296)
+JavaCPP Memory: Current Bytes                .00 B
+JavaCPP Memory: Current Physical          4.00 GiB (4299481088)
+Periodic GC Enabled                     false
+
+----- Workspace Information -----
+Workspaces: # for current thread        2
+Current thread workspaces:
+  Name                      State       Size                          # Cycles            
+  WS_LAYER_WORKING_MEM      CLOSED           .00 B                    1                   
+  WS_ALL_LAYERS_ACT         CLOSED        3.94 KiB (4032)             1                   
+Workspaces total size                     3.94 KiB (4032)
+
+----- Network Information -----
+Network # Parameters                    19013
+Parameter Memory                         74.27 KiB (76052)
+Parameter Gradients Memory              <not allocated>
+Updater                                 <not initialized>
+Params + Gradient + Updater Memory           .00 B
+Iteration Count                         1153
+Epoch Count                             0
+Backprop Type                           Standard
+Workspace Mode: Training                ENABLED
+Workspace Mode: Inference               ENABLED
+Number of Layers                        4
+Layer Counts
+  DenseLayer                              3
+  OutputLayer                             1
+Layer Parameter Breakdown
+  Idx Name                 Layer Type           Layer # Parameters   Layer Parameter Memory
+  0   layer0               DenseLayer           2112                   8.25 KiB (8448)   
+  1   layer1               DenseLayer           8320                  32.50 KiB (33280)  
+  2   layer2               DenseLayer           8256                  32.25 KiB (33024)  
+  3   layer3               OutputLayer          325                    1.27 KiB (1300)   
+
+----- Layer Helpers - Memory Use -----
+Total Helper Count                      0
+Helper Count w/ Memory                  0
+Total Helper Persistent Memory Use           .00 B
+
+----- Network Activations: Inferred Activation Shapes -----
+Current Minibatch Size                  15
+Input Shape                             [15, 32]
+Idx Name                 Layer Type           Activations Type                           Activations Shape    # Elements   Memory      
+0   layer0               DenseLayer           InputTypeFeedForward(64)                   [15, 64]             960            3.75 KiB (3840)
+1   layer1               DenseLayer           InputTypeFeedForward(128)                  [15, 128]            1920           7.50 KiB (7680)
+2   layer2               DenseLayer           InputTypeFeedForward(64)                   [15, 64]             960            3.75 KiB (3840)
+3   layer3               OutputLayer          InputTypeFeedForward(5)                    [15, 5]              75             300.00 B  
+Total Activations Memory                 15.29 KiB (15660)
+Total Activations Memory (per ex)         1.02 KiB (1044)
+Total Activation Gradient Mem.           16.88 KiB (17280)
+Total Activation Gradient Mem. (per ex)   1.12 KiB (1152)
+
+----- Network Training Listeners -----
+Number of Listeners                     0

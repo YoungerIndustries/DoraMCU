@@ -3,6 +3,7 @@ package com.yisy.modules.doraai.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yisy.modules.doraai.config.GeminiConfig;
+import com.yisy.modules.doraai.util.RetryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -36,11 +37,9 @@ public class GeminiService implements AiProvider {
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
-    public GeminiService(GeminiConfig config) {
+    public GeminiService(GeminiConfig config, HttpClient httpClient) {
         this.config = config;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(java.time.Duration.ofMillis(config.getConnectTimeoutMs()))
-                .build();
+        this.httpClient = httpClient;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -61,36 +60,37 @@ public class GeminiService implements AiProvider {
         String modelName = (model != null && !model.isBlank()) ? model : config.getModel();
         log.debug("Sending chat request to Gemini, model: {}, messages: {}", modelName, messages.size());
 
-        try {
-            String jsonBody = buildChatRequest(modelName, messages, false);
-            String url = config.getBaseUrl() + "/v1beta/models/" + modelName + ":generateContent?key=" + config.getApiKey();
+        return RetryUtil.withRetry(3, 1000L, () -> {
+            try {
+                String jsonBody = buildChatRequest(modelName, messages, false);
+                String url = config.getBaseUrl() + "/v1beta/models/" + modelName + ":generateContent?key=" + config.getApiKey();
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .timeout(java.time.Duration.ofMillis(config.getReadTimeoutMs()))
-                    .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
-                    .build();
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .timeout(java.time.Duration.ofMillis(config.getReadTimeoutMs()))
+                        .header("Content-Type", "application/json")
+                        .header("X-Goog-Api-Key", config.getApiKey())
+                        .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                        .build();
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-            if (response.statusCode() != 200) {
-                log.error("Gemini chat request failed with status: {}", response.statusCode());
-                throw new GeminiException("Gemini API error: " + response.statusCode() + " - " + response.body());
+                if (response.statusCode() != 200) {
+                    log.error("Gemini chat request failed with status: {}", response.statusCode());
+                    throw new GeminiException("Gemini API error: " + response.statusCode() + " - " + response.body());
+                }
+
+                JsonNode jsonNode = objectMapper.readTree(response.body());
+                String content = extractContent(jsonNode);
+                return ResponseTextFilter.normalize(content);
+
+            } catch (IOException e) {
+                throw new GeminiException("Failed to communicate with Gemini: " + e.getMessage(), e);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new GeminiException("Interrupted while waiting for Gemini response", e);
             }
-
-            JsonNode jsonNode = objectMapper.readTree(response.body());
-            String content = extractContent(jsonNode);
-            return ResponseTextFilter.normalize(content);
-
-        } catch (IOException e) {
-            log.error("IO error communicating with Gemini", e);
-            throw new GeminiException("Failed to communicate with Gemini: " + e.getMessage(), e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Interrupted while waiting for Gemini response", e);
-            throw new GeminiException("Interrupted while waiting for Gemini response", e);
-        }
+        });
     }
 
     /**
@@ -102,7 +102,7 @@ public class GeminiService implements AiProvider {
      */
     @Override
     public SseEmitter streamChat(String model, List<Message> messages) {
-        SseEmitter emitter = new SseEmitter(0L);
+        SseEmitter emitter = new SseEmitter(300_000L); // 5 minute timeout
         streamChat(model, messages, emitter, null);
         return emitter;
     }
@@ -135,6 +135,7 @@ public class GeminiService implements AiProvider {
                 .uri(URI.create(url))
                 .timeout(java.time.Duration.ofMillis(config.getReadTimeoutMs()))
                 .header("Content-Type", "application/json")
+                .header("X-Goog-Api-Key", config.getApiKey())
                 .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
                 .build();
 
@@ -238,10 +239,11 @@ public class GeminiService implements AiProvider {
 
         try {
             // Use a simple model info request to check availability
-            String url = config.getBaseUrl() + "/v1beta/models/" + config.getModel() + "?key=" + config.getApiKey();
+            String url = config.getBaseUrl() + "/v1beta/models/" + config.getModel();
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .timeout(java.time.Duration.ofMillis(config.getConnectTimeoutMs()))
+                    .header("X-Goog-Api-Key", config.getApiKey())
                     .GET()
                     .build();
 

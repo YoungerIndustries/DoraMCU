@@ -1,16 +1,24 @@
 package com.yisy.modules.doramcu.controller;
 
+import com.yisy.modules.doramcu.ai.AiDelegationService;
 import com.yisy.modules.doramcu.ai.GameChatService;
 import com.yisy.modules.doramcu.config.AiDifficultyConfig;
 import com.yisy.modules.doradl.dl.service.DlGameAiService;
 import com.yisy.modules.doradl.dl.service.DoraAiLearningService;
 import com.yisy.modules.doramcu.dto.*;
+import com.yisy.modules.doramcu.hex.Game;
 import com.yisy.modules.doramcu.model.SolarSystem;
+import com.yisy.modules.doramcu.repository.GalaxyRepository;
 import com.yisy.modules.doramcu.repository.PersistedGameSessionRepository;
 import com.yisy.modules.doramcu.repository.SolarSystemRepository;
 import com.yisy.modules.doramcu.service.AiPlayerService;
 import com.yisy.modules.doramcu.service.GameSessionService;
+import com.yisy.modules.doramcu.service.GameStateBuilder;
+import com.yisy.modules.doramcu.service.SessionActionHandler;
 import com.yisy.modules.doramcu.service.TurnScheduler;
+import com.yisy.modules.doramcu.unified.GameType;
+import com.yisy.modules.doramcu.unified.GlobalClock;
+import com.yisy.modules.doramcu.unified.GlobalClockService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,6 +31,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -38,17 +47,31 @@ class AiPlayerControllerTest {
     void setUp() {
         SolarSystemRepository solarSystemRepository = Mockito.mock(SolarSystemRepository.class);
         PersistedGameSessionRepository persistedGameSessionRepository = Mockito.mock(PersistedGameSessionRepository.class);
+        GalaxyRepository galaxyRepository = Mockito.mock(GalaxyRepository.class);
+        Mockito.when(galaxyRepository.findAll()).thenReturn(new java.util.ArrayList<>());
         TurnScheduler turnScheduler = Mockito.mock(TurnScheduler.class);
         when(turnScheduler.getTurnIntervalSeconds()).thenReturn(5L);
         when(turnScheduler.getAccumulatedSeconds(anyString())).thenReturn(0L);
         when(turnScheduler.isEnabled()).thenReturn(true);
-        gameSessionService = new GameSessionService(solarSystemRepository, persistedGameSessionRepository, turnScheduler);
+        GameStateBuilder gameStateBuilder = Mockito.mock(GameStateBuilder.class);
+        Mockito.when(gameStateBuilder.buildPlayerSummaries(Mockito.any(), Mockito.any())).thenReturn(new java.util.ArrayList<>());
+        Mockito.when(gameStateBuilder.buildSubSectorInfo(Mockito.any(), Mockito.anyBoolean())).thenReturn(new java.util.ArrayList<>());
+        Mockito.when(gameStateBuilder.buildGameStateResponse(Mockito.any(), Mockito.any(), Mockito.anyBoolean())).thenAnswer(invocation -> {
+            com.yisy.modules.doramcu.dto.GameStateResponse resp = new com.yisy.modules.doramcu.dto.GameStateResponse();
+            resp.setSubSectors(new java.util.ArrayList<>());
+            return resp;
+        });
+        SessionActionHandler sessionActionHandler = Mockito.mock(SessionActionHandler.class);
+        GlobalClockService globalClockService = Mockito.mock(GlobalClockService.class);
+        when(globalClockService.getOrCreateClock(anyString(), any())).thenAnswer(invocation -> GlobalClock.forGameType(GameType.DORAMCU_4X));
+        gameSessionService = new GameSessionService(persistedGameSessionRepository, galaxyRepository, null, turnScheduler, gameStateBuilder, null, null, sessionActionHandler, globalClockService);
         dlGameAiService = Mockito.mock(DlGameAiService.class);
         AiDifficultyConfig aiDifficultyConfig = new AiDifficultyConfig();
         GameChatService gameChatService = Mockito.mock(GameChatService.class);
         DoraAiLearningService doraAiLearningService = Mockito.mock(DoraAiLearningService.class);
         aiPlayerService = new AiPlayerService(gameSessionService, dlGameAiService, aiDifficultyConfig, gameChatService, doraAiLearningService);
-        controller = new AiPlayerController(aiPlayerService);
+        AiDelegationService aiDelegationService = Mockito.mock(AiDelegationService.class);
+        controller = new AiPlayerController(aiPlayerService, aiDelegationService);
     }
 
     // ---- Create AI Player ----
@@ -171,7 +194,7 @@ class AiPlayerControllerTest {
         long aiPlayerId = createResponse2.getBody().getPlayerId();
 
         // 3. Verify session has 2 players
-        assertEquals(2, gameSessionService.getGameSession(sessionId).getGame().getPlayerCount());
+        assertEquals(2, ((Game) gameSessionService.getGameSession(sessionId).getGame()).getPlayerCount());
 
         // 4. Execute AI turn - simultaneous turns, no need to advance
         ResponseEntity<GameStateResponse> turnResponse = controller.executeAiTurn(
@@ -192,6 +215,6 @@ class AiPlayerControllerTest {
         controller.createAiPlayer(sessionId, "AI 3", AiPlayerService.Difficulty.HARD);
 
         // Verify all players are in session
-        assertEquals(4, gameSessionService.getGameSession(sessionId).getGame().getPlayerCount());
+        assertEquals(4, ((Game) gameSessionService.getGameSession(sessionId).getGame()).getPlayerCount());
     }
 }

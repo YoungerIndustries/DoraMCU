@@ -186,7 +186,8 @@ class HexTest {
         List<HexEvent> events = hex.getPossibleEvents();
         assertTrue(events.contains(HexEvent.PLACE));
         assertTrue(events.contains(HexEvent.BLOCK));
-        assertEquals(2, events.size());
+        assertTrue(events.contains(HexEvent.DESTROY));
+        assertEquals(3, events.size());
     }
 
     @Test
@@ -197,7 +198,8 @@ class HexTest {
         List<HexEvent> events = hex.getPossibleEvents();
         assertTrue(events.contains(HexEvent.REMOVE));
         assertTrue(events.contains(HexEvent.SELECT));
-        assertEquals(2, events.size());
+        assertTrue(events.contains(HexEvent.DESTROY));
+        assertEquals(3, events.size());
     }
 
     @Test
@@ -208,7 +210,8 @@ class HexTest {
         hex.select();
         List<HexEvent> events = hex.getPossibleEvents();
         assertTrue(events.contains(HexEvent.DESELECT));
-        assertEquals(1, events.size());
+        assertTrue(events.contains(HexEvent.DESTROY));
+        assertEquals(2, events.size());
     }
 
     @Test
@@ -218,7 +221,8 @@ class HexTest {
         hex.block();
         List<HexEvent> events = hex.getPossibleEvents();
         assertTrue(events.contains(HexEvent.UNBLOCK));
-        assertEquals(1, events.size());
+        assertTrue(events.contains(HexEvent.DESTROY));
+        assertEquals(2, events.size());
     }
 
     @Test

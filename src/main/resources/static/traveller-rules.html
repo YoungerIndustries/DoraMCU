@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classic Traveller — Rules Database</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-cyan: #06b6d4;
+            --accent-purple: #8b5cf6;
+            --accent-green: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-red: #ef4444;
+            --border-color: #334155;
+            --radius: 8px;
+            --radius-sm: 4px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-title .subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .search-box {
+            position: relative;
+            width: 320px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 8px 12px 8px 36px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-box input:focus {
+            border-color: var(--accent-cyan);
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-box .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .btn-back {
+            padding: 6px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .btn-back:hover {
+            background: var(--accent-cyan);
+            color: #fff;
+            border-color: var(--accent-cyan);
+        }
+
+        /* Layout */
+        .layout {
+            display: flex;
+            min-height: calc(100vh - 57px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            min-width: 260px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            padding: 16px 0;
+            overflow-y: auto;
+            max-height: calc(100vh - 57px);
+            position: sticky;
+            top: 57px;
+        }
+
+        .sidebar-section {
+            margin-bottom: 20px;
+        }
+
+        .sidebar-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            padding: 0 16px;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-item:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .sidebar-item.active {
+            background: rgba(6, 182, 212, 0.1);
+            color: var(--accent-cyan);
+            border-left-color: var(--accent-cyan);
+        }
+
+        .sidebar-item .count {
+            font-size: 0.7rem;
+            background: var(--bg-tertiary);
+            padding: 2px 8px;
+            border-radius: 10px;
+            color: var(--text-muted);
+        }
+
+        .sidebar-item.active .count {
+            background: rgba(6, 182, 212, 0.2);
+            color: var(--accent-cyan);
+        }
+
+        /* Main content */
+        .main-content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        /* Summary view */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .summary-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 20px;
+            text-align: center;
+        }
+
+        .summary-card .number {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .summary-card .label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Section headers */
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-header h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .section-header .badge {
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Rule entries */
+        .rule-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .rule-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+        .rule-card:hover {
+            border-color: var(--accent-cyan);
+        }
+
+        .rule-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .rule-header:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .rule-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .rule-meta {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .rule-tag {
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+        }
+
+        .tag-source {
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--accent-purple);
+        }
+
+        .tag-chapter {
+            background: rgba(6, 182, 212, 0.15);
+            color: var(--accent-cyan);
+        }
+
+        .tag-page {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-amber);
+        }
+
+        .rule-body {
+            display: none;
+            padding: 0 18px 18px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .rule-card.expanded .rule-body {
+            display: block;
+        }
+
+        .rule-text {
+            font-size: 0.9rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            margin-top: 14px;
+        }
+
+        .rule-notes {
+            margin-top: 12px;
+            padding: 12px;
+            background: rgba(245, 158, 11, 0.05);
+            border-left: 3px solid var(--accent-amber);
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .rule-notes-label {
+            font-weight: 600;
+            color: var(--accent-amber);
+            font-style: normal;
+            margin-bottom: 4px;
+        }
+
+        /* Table entries */
+        .table-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+        }
+
+        .table-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            padding: 14px;
+        }
+
+        .table-card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .table-roll {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+            border-radius: var(--radius-sm);
+        }
+
+        .table-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .table-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        .loading .spinner {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+
+        /* Tabs */
+        .tab-bar {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            background: var(--bg-secondary);
+            padding: 4px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border-color);
+        }
+
+        .tab-btn {
+            padding: 8px 16px;
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .tab-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+            font-weight: 600;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            .search-box {
+                width: 200px;
+            }
+            .main-content {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-title">
+            <div>
+                <h1>🚀 Classic Traveller Rules</h1>
+                <div class="subtitle">Rules Database — 7 Source Books</div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="Search rules..." autocomplete="off">
+            </div>
+            <a href="game.html" class="btn-back">← Back to Game</a>
+        </div>
+    </div>
+
+    <!-- Layout -->
+    <div class="layout">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">Overview</div>
+                <div class="sidebar-item active" data-view="summary" onclick="switchView('summary')">
+                    <span>📊 Summary</span>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">Categories</div>
+                <div id="categoryList">
+                    <div class="loading"><div class="spinner"></div></div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">Source Books</div>
+                <div id="sourceList">
+                    <div class="loading"><div class="spinner"></div></div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title">Reference Tables</div>
+                <div id="tableList">
+                    <div class="loading"><div class="spinner"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content" id="mainContent">
+            <div class="loading">
+                <div class="spinner"></div>
+                <div>Loading rules database...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api/v1/traveller/rules';
+        let categories = [];
+        let sources = [];
+        let tableNames = [];
+        let categoryCounts = {};
+        let sourceCounts = {};
+
+        // Search debounce
+        let searchTimeout;
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const query = e.target.value.trim();
+                if (query.length >= 2) {
+                    searchRules(query);
+                } else if (query.length === 0) {
+                    switchView('summary');
+                }
+            }, 300);
+        });
+
+        // Enter key search
+        document.getElementById('searchInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                clearTimeout(searchTimeout);
+                const query = e.target.value.trim();
+                if (query.length >= 1) {
+                    searchRules(query);
+                }
+            }
+        });
+
+        async function init() {
+            try {
+                // Load categories and sources in parallel
+                const [catRes, srcRes] = await Promise.all([
+                    fetch(`${API_BASE}/categories`),
+                    fetch(`${API_BASE}/sources`)
+                ]);
+
+                categories = await catRes.json();
+                sources = await srcRes.json();
+
+                // Load counts
+                await loadCounts();
+
+                // Set up known table names
+                tableNames = [
+                    'Saving Throw', 'Damage Effects', 'Ship Hit Location',
+                    'Space Encounters', 'Wildlife Encounters'
+                ];
+
+                renderSidebar();
+                switchView('summary');
+            } catch (err) {
+                document.getElementById('mainContent').innerHTML =
+                    `<div class="empty-state"><div class="icon">⚠️</div><div>Failed to load rules database.<br>${err.message}</div></div>`;
+            }
+        }
+
+        async function loadCounts() {
+            // Load category counts
+            const catPromises = categories.map(async (cat) => {
+                const res = await fetch(`${API_BASE}/category?category=${encodeURIComponent(cat)}`);
+                const entries = await res.json();
+                categoryCounts[cat] = entries.length;
+            });
+            await Promise.all(catPromises);
+
+            // Load source counts
+            const srcPromises = sources.map(async (src) => {
+                const res = await fetch(`${API_BASE}/source?source=${encodeURIComponent(src)}`);
+                const entries = await res.json();
+                sourceCounts[src] = entries.length;
+            });
+            await Promise.all(srcPromises);
+        }
+
+        function renderSidebar() {
+            // Categories
+            const catContainer = document.getElementById('categoryList');
+            catContainer.innerHTML = categories.map(cat => `
+                <div class="sidebar-item" data-view="category" data-value="${cat}" onclick="switchView('category', '${cat.replace(/'/g, "\\'")}')">
+                    <span>${formatCategory(cat)}</span>
+                    <span class="count">${categoryCounts[cat] || 0}</span>
+                </div>
+            `).join('');
+
+            // Sources
+            const srcContainer = document.getElementById('sourceList');
+            srcContainer.innerHTML = sources.map(src => `
+                <div class="sidebar-item" data-view="source" data-value="${src}" onclick="switchView('source', '${src.replace(/'/g, "\\'")}')">
+                    <span>${formatSource(src)}</span>
+                    <span class="count">${sourceCounts[src] || 0}</span>
+                </div>
+            `).join('');
+
+            // Tables
+            const tblContainer = document.getElementById('tableList');
+            tblContainer.innerHTML = tableNames.map(name => `
+                <div class="sidebar-item" data-view="table" data-value="${name}" onclick="switchView('table', '${name.replace(/'/g, "\\'")}')">
+                    <span>📋 ${name}</span>
+                </div>
+            `).join('');
+        }
+
+        function formatCategory(cat) {
+            return cat.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+        }
+
+        function formatSource(src) {
+            const map = {
+                'The Traveller Book': '📘 Traveller Book',
+                'B01 Characters & Combat': '📗 B01 Combat',
+                'B02 Starships': '📙 B02 Starships',
+                'B04 Mercenary': '📕 B04 Mercenary',
+                'B05 High Guard': '📔 B05 High Guard',
+                'S03 Spinward Marches': '📒 S03 Spinward',
+                'A05 Trillion Credit Squadron': '📓 A05 Adventure'
+            };
+            return map[src] || src;
+        }
+
+        function setActiveSidebar(view, value) {
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.view === view && (!value || item.dataset.value === value)) {
+                    item.classList.add('active');
+                }
+            });
+        }
+
+        async function switchView(view, value) {
+            setActiveSidebar(view, value);
+            const main = document.getElementById('mainContent');
+
+            if (view === 'summary') {
+                document.getElementById('searchInput').value = '';
+                renderSummary(main);
+            } else if (view === 'category') {
+                await renderCategory(main, value);
+            } else if (view === 'source') {
+                await renderSource(main, value);
+            } else if (view === 'table') {
+                await renderTable(main, value);
+            }
+        }
+
+        function renderSummary(main) {
+            const totalEntries = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
+            main.innerHTML = `
+                <div class="section-header">
+                    <h2>📊 Rules Database Summary</h2>
+                </div>
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div class="number">${totalEntries}</div>
+                        <div class="label">Rule Entries</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="number">${categories.length}</div>
+                        <div class="label">Categories</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="number">${sources.length}</div>
+                        <div class="label">Source Books</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="number">${tableNames.length}</div>
+                        <div class="label">Reference Tables</div>
+                    </div>
+                </div>
+
+                <div class="section-header">
+                    <h2>📚 Source Books</h2>
+                </div>
+                <div class="rule-list">
+                    ${sources.map(src => `
+                        <div class="rule-card" style="cursor:pointer" onclick="switchView('source', '${src.replace(/'/g, "\\'")}')">
+                            <div class="rule-header">
+                                <div class="rule-title">${formatSource(src)}</div>
+                                <div class="rule-meta">
+                                    <span class="rule-tag tag-page">${sourceCounts[src] || 0} rules</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div style="margin-top: 32px;">
+                    <div class="section-header">
+                        <h2>📋 Reference Tables</h2>
+                    </div>
+                    <div class="rule-list">
+                        ${tableNames.map(name => `
+                            <div class="rule-card" style="cursor:pointer" onclick="switchView('table', '${name.replace(/'/g, "\\'")}')">
+                                <div class="rule-header">
+                                    <div class="rule-title">📋 ${name}</div>
+                                    <div class="rule-meta">
+                                        <span class="rule-tag tag-chapter">Click to view</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        async function renderCategory(main, category) {
+            main.innerHTML = `<div class="loading"><div class="spinner"></div><div>Loading ${formatCategory(category)}...</div></div>`;
+            try {
+                const res = await fetch(`${API_BASE}/category?category=${encodeURIComponent(category)}`);
+                const entries = await res.json();
+                renderRuleList(main, formatCategory(category), entries);
+            } catch (err) {
+                main.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><div>Failed to load rules.</div></div>`;
+            }
+        }
+
+        async function renderSource(main, source) {
+            main.innerHTML = `<div class="loading"><div class="spinner"></div><div>Loading ${source}...</div></div>`;
+            try {
+                const res = await fetch(`${API_BASE}/source?source=${encodeURIComponent(source)}`);
+                const entries = await res.json();
+                renderRuleList(main, formatSource(source), entries);
+            } catch (err) {
+                main.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><div>Failed to load rules.</div></div>`;
+            }
+        }
+
+        function renderRuleList(main, title, entries) {
+            if (!entries || entries.length === 0) {
+                main.innerHTML = `<div class="empty-state"><div class="icon">📭</div><div>No rules found for "${title}".</div></div>`;
+                return;
+            }
+
+            main.innerHTML = `
+                <div class="section-header">
+                    <h2>${title}</h2>
+                    <span class="badge">${entries.length} rules</span>
+                </div>
+                <div class="rule-list">
+                    ${entries.map(entry => `
+                        <div class="rule-card">
+                            <div class="rule-header" onclick="this.parentElement.classList.toggle('expanded')">
+                                <div class="rule-title">${entry.title}</div>
+                                <div class="rule-meta">
+                                    <span class="rule-tag tag-source">${entry.source || ''}</span>
+                                    <span class="rule-tag tag-chapter">${entry.chapter || ''}</span>
+                                    ${entry.page ? `<span class="rule-tag tag-page">p.${entry.page}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="rule-body">
+                                <div class="rule-text">${entry.text || ''}</div>
+                                ${entry.notes ? `
+                                    <div class="rule-notes">
+                                        <div class="rule-notes-label">Notes</div>
+                                        ${entry.notes}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        async function renderTable(main, tableName) {
+            main.innerHTML = `<div class="loading"><div class="spinner"></div><div>Loading ${tableName}...</div></div>`;
+            try {
+                const res = await fetch(`${API_BASE}/tables?tableName=${encodeURIComponent(tableName)}`);
+                const entries = await res.json();
+
+                if (!entries || entries.length === 0) {
+                    main.innerHTML = `<div class="empty-state"><div class="icon">📭</div><div>No entries found for "${tableName}".</div></div>`;
+                    return;
+                }
+
+                // Sort by roll value
+                entries.sort((a, b) => a.rollValue - b.rollValue);
+
+                main.innerHTML = `
+                    <div class="section-header">
+                        <h2>📋 ${tableName}</h2>
+                        <span class="badge">${entries.length} entries</span>
+                    </div>
+                    <div class="table-grid">
+                        ${entries.map(entry => `
+                            <div class="table-card">
+                                <div class="table-card-header">
+                                    <span class="table-roll">${entry.rollValue}</span>
+                                    <span class="table-label">${entry.resultLabel}</span>
+                                </div>
+                                <div class="table-desc">${entry.description || ''}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } catch (err) {
+                main.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><div>Failed to load table.</div></div>`;
+            }
+        }
+
+        async function searchRules(keyword) {
+            const main = document.getElementById('mainContent');
+            main.innerHTML = `<div class="loading"><div class="spinner"></div><div>Searching for "${keyword}"...</div></div>`;
+            try {
+                const res = await fetch(`${API_BASE}/search?keyword=${encodeURIComponent(keyword)}`);
+                const entries = await res.json();
+                renderRuleList(main, `Search: "${keyword}"`, entries);
+            } catch (err) {
+                main.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><div>Search failed.</div></div>`;
+            }
+        }
+
+        // Initialize
+        init();
+    </script>
+</body>
+</html>

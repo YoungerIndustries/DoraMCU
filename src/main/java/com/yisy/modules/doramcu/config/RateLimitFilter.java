@@ -33,7 +33,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         String uri = request.getRequestURI();
 
         // Apply stricter rate limiting for login endpoint
-        if (uri.startsWith("/api/v1/auth/login") || uri.equals("/auth/login")) {
+        if (uri.startsWith("/api/v1/4x/auth/login") || uri.equals("/auth/login")) {
             if (!rateLimiterService.isAllowedForLogin(clientIp)) {
                 log.warn("Rate limit exceeded for login from IP: {}", clientIp);
                 metricsConfig.getRateLimitRejectedCounter().increment();

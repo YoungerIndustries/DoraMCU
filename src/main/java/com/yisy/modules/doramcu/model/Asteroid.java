@@ -52,14 +52,6 @@ public class Asteroid {
         PROTOPLANET
     }
 
-    public enum StrategicResource {
-        ELERIUM,
-        ANTI_MATTER,
-        THULIUM,
-        DURANTIUM,
-        PROMETHION
-    }
-
     public Asteroid() {
     }
 

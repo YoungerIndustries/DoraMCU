@@ -96,6 +96,7 @@ public class AiProviderFactory {
         }
 
         // Fall back to default provider even if unavailable (will handle error during call)
+        log.warn("All AI providers are unavailable. Falling back to default provider: {} (may fail)", defaultProvider);
         return getDefaultProvider();
     }
 

@@ -16,7 +16,7 @@ public class SubSector {
     private final int id;
     private final int subRow;
     private final int subCol;
-    private final String name;
+    private String name;
     private final Map<Integer, SolarSystem> systems;
     private final Map<String, GalacticEntry> positionIndex;
     private boolean generated;
@@ -78,6 +78,19 @@ public class SubSector {
     }
 
     /**
+     * Sets the display name of this subsector.
+     * Allows renaming subsectors at runtime so the new name persists to the database.
+     *
+     * @param name the new display name
+     */
+    public void setName(String name) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("SubSector name must not be null or blank");
+        }
+        this.name = name;
+    }
+
+    /**
      * Sets the progress listener for system generation callbacks.
      *
      * @param listener the progress listener
@@ -103,6 +116,7 @@ public class SubSector {
         if (x < 0 || x >= Galaxy.SUBSECTOR_DIMENSION || y < 0 || y >= Galaxy.SUBSECTOR_DIMENSION || z < 0 || z >= Galaxy.SUBSECTOR_DIMENSION) {
             throw new IllegalArgumentException("Position must be within subsector bounds [0, " + Galaxy.SUBSECTOR_DIMENSION + "): (" + x + ", " + y + ", " + z + ")");
         }
+        this.generated = true;
         String key = x + "," + y + "," + z;
         GalacticEntry removed = positionIndex.remove(key);
         systems.put(system.getId(), system);

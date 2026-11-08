@@ -1,7 +1,9 @@
 /* ============================================
    ADMIN PANEL — Dark space theme
-   (Shared design system variables in game.css)
+   (Shared design system variables in variables.css)
    ============================================ */
+
+@import url('variables.css');
 
 body {
     background: var(--bg-primary);
@@ -56,12 +58,8 @@ body::before {
     padding: 0 1rem;
 }
 
-/* Flex utilities */
-.d-flex { display: flex; }
-.justify-content-between { justify-content: space-between; }
-.align-items-center { align-items: center; }
+/* Flex utilities (extended from variables.css) */
 .gap-2 { gap: 0.5rem; }
-.mb-0 { margin-bottom: 0; }
 .mb-3 { margin-bottom: 1rem; }
 .mt-3 { margin-top: 1rem; }
 
@@ -677,6 +675,132 @@ h5 {
     color: var(--text-bright);
 }
 
+/* ============================================
+   Login Gate - Full screen authentication overlay
+   (Extracted from admin.html inline styles)
+   ============================================ */
+
+#loginGate {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 50%, #0a0e27 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+#loginGate .login-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 40px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+#loginGate .login-card h2 {
+    color: #fff;
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+#loginGate .login-card .login-subtitle {
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    margin-bottom: 32px;
+    font-size: 0.9rem;
+}
+
+#loginGate .login-card .form-label {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+#loginGate .login-card .form-control {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border-radius: 8px;
+    padding: 10px 14px;
+}
+
+#loginGate .login-card .form-control:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: #fff;
+    box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.15);
+}
+
+#loginGate .login-card .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+#loginGate .login-card .btn-login {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: #fff;
+    font-weight: 600;
+    font-size: 1rem;
+    margin-top: 8px;
+    cursor: pointer;
+    transition: background var(--transition-normal);
+}
+
+#loginGate .login-card .btn-login:hover {
+    background: linear-gradient(135deg, #5a6fd6 0%, #6a4296 100%);
+}
+
+#loginGate .login-card .login-error {
+    background: rgba(220, 53, 69, 0.2);
+    border: 1px solid rgba(220, 53, 69, 0.4);
+    color: #f8d7da;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+    display: none;
+}
+
+#loginGate .login-card .login-error.visible {
+    display: block;
+}
+
+#loginGate .login-card .login-hint {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.8rem;
+    text-align: center;
+    margin-top: 16px;
+}
+
+/* Hide main dashboard until authenticated */
+#adminDashboard {
+    display: none;
+}
+
+#adminDashboard.visible {
+    display: block;
+}
+
+/* Header with logout button (shown after login) */
+.admin-header .user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.admin-header .user-info .username {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .admin-header h1 {
@@ -685,5 +809,10 @@ h5 {
     
     .admin-card .card-body {
         padding: 1.5rem;
+    }
+    
+    #loginGate .login-card {
+        padding: 24px;
+        margin: 16px;
     }
 }

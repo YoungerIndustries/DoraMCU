@@ -52,3 +52,21 @@ Thumbs.db
 
 ### Docker ###
 docker-compose.override.yml
+
+### JVM Crash Logs ###
+hs_err_pid*.log
+replay_pid*.log
+
+### Deep Learning Models ###
+dl-models/
+
+### Orphaned/Temporary Files ###
+DoraAI2/
+search.ps1
+transcript.md
+
+### Python ###
+**/__pycache__/
+*.pyc
+*.pyo
+*.egg-info/

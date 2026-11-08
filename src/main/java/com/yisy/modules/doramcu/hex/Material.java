@@ -22,7 +22,13 @@ public enum Material {
     Composite(4),
 
     /** Volatile material, value = 5 */
-    Explosive(5);
+    Explosive(5),
+
+    /** Advanced crystal-based armor material, value = 6 */
+    Crystaliron(6),
+
+    /** Ultra-dense bonded armor material, value = 7 */
+    Superdense(7);
 
     private final int value;
 

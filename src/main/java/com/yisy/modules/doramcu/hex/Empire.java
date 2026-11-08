@@ -301,4 +301,54 @@ public class Empire {
         navy.endTurn();
         facilities.endTurn();
     }
+
+    // ---- Ground Force & Mercenary Tracking ----
+
+    /**
+     * Returns the total ground force strength of this empire.
+     * <p>
+     * Combines regular army units and mercenary units.
+     * </p>
+     *
+     * @return total ground strength
+     */
+    public int getGroundForceStrength() {
+        return army.getTotalGroundStrength();
+    }
+
+    /**
+     * Returns the total number of mercenary units in this empire.
+     *
+     * @return mercenary unit count
+     */
+    public int getMercenaryUnitCount() {
+        return army.getMercenaryUnitCount();
+    }
+
+    /**
+     * Returns the total number of regular army units in this empire.
+     *
+     * @return army unit count
+     */
+    public int getArmyUnitCount() {
+        return army.getUnitCount();
+    }
+
+    /**
+     * Returns the total offense value of this empire's army.
+     *
+     * @return total offense
+     */
+    public int getArmyOffense() {
+        return army.getTotalOffense();
+    }
+
+    /**
+     * Returns the total defense value of this empire's army.
+     *
+     * @return total defense
+     */
+    public int getArmyDefense() {
+        return army.getTotalDefense();
+    }
 }

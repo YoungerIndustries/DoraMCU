@@ -1,6 +1,7 @@
 package com.yisy.modules.doraai.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,6 +17,7 @@ public class Conversation {
     private final String sessionId;
     private final List<Message> messages;
     private final long createdAt;
+    private volatile long lastActivityTime;
     private String projectId;
 
     /**
@@ -42,13 +44,17 @@ public class Conversation {
     public Conversation() {
         this.sessionId = UUID.randomUUID().toString();
         this.messages = new ArrayList<>();
-        this.createdAt = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
+        this.createdAt = now;
+        this.lastActivityTime = now;
     }
 
     public Conversation(String sessionId) {
         this.sessionId = sessionId;
         this.messages = new ArrayList<>();
-        this.createdAt = System.currentTimeMillis();
+        long now = System.currentTimeMillis();
+        this.createdAt = now;
+        this.lastActivityTime = now;
     }
 
     public String getSessionId() {
@@ -56,7 +62,7 @@ public class Conversation {
     }
 
     public List<Message> getMessages() {
-        return messages;
+        return Collections.unmodifiableList(messages);
     }
 
     public long getCreatedAt() {
@@ -76,6 +82,7 @@ public class Conversation {
      */
     public void addUserMessage(String content) {
         messages.add(new Message("user", content));
+        this.lastActivityTime = System.currentTimeMillis();
     }
 
     /**
@@ -83,6 +90,7 @@ public class Conversation {
      */
     public void addAiMessage(String content) {
         messages.add(new Message("assistant", content));
+        this.lastActivityTime = System.currentTimeMillis();
     }
 
     /**
@@ -97,5 +105,12 @@ public class Conversation {
      */
     public void clearMessages() {
         messages.clear();
+    }
+
+    /**
+     * Returns the timestamp of the last activity in this conversation (epoch ms).
+     */
+    public long getLastActivityTime() {
+        return lastActivityTime;
     }
 }

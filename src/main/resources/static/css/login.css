@@ -1,7 +1,79 @@
 /* ============================================
    LOGIN PAGE — Index.html specific styles
-   (Shared design system variables in game.css)
+   (Shared design system variables in variables.css)
    ============================================ */
+
+@import url('variables.css');
+
+/* Auth Tab Styles (extracted from index.html inline styles) */
+.auth-tab-group {
+    display: flex;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+    margin-bottom: 20px;
+    gap: 4px;
+}
+.auth-tab-btn {
+    flex: 1;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+.auth-tab-btn.active {
+    background: rgba(0, 212, 255, 0.15);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+}
+.server-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    margin-top: 6px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.3);
+}
+.status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #00ff88;
+    box-shadow: 0 0 6px #00ff88;
+}
+.status-dot.offline {
+    background: #ff4444;
+    box-shadow: 0 0 6px #ff4444;
+}
+.pin-display-box {
+    background: rgba(0, 212, 255, 0.08);
+    border: 1px dashed var(--accent-cyan);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    margin-top: 14px;
+    text-align: center;
+}
+.pin-code-text {
+    font-family: var(--font-display, monospace);
+    font-size: 1.4rem;
+    letter-spacing: 4px;
+    color: var(--accent-cyan);
+    font-weight: 700;
+}
 
 body {
     min-height: 100vh;
@@ -379,4 +451,416 @@ select.form-control:focus {
 
 .fade-in {
     animation: fadeIn 0.3s ease-out;
+}
+
+/* Empire List */
+.empire-list {
+    max-height: 320px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-right: 4px;
+}
+
+.empire-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.empire-list::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.empire-list::-webkit-scrollbar-thumb {
+    background: rgba(0, 212, 255, 0.3);
+    border-radius: 3px;
+}
+
+.empire-list-loading {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    padding: 20px;
+}
+
+/* Empire Card */
+.empire-card {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    transition: all 0.2s ease;
+    cursor: default;
+}
+
+.empire-card:hover {
+    border-color: rgba(0, 212, 255, 0.4);
+    background: rgba(0, 212, 255, 0.05);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.1);
+}
+
+.empire-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.empire-icon {
+    font-size: 1.8rem;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 212, 255, 0.1);
+    border-radius: var(--radius-sm);
+}
+
+.empire-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.empire-name {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.empire-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.empire-badge {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.empire-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.empire-commander {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.empire-login-btn {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(168, 85, 247, 0.4));
+    border: 1px solid rgba(59, 130, 246, 0.5);
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: var(--font-display);
+    border-radius: var(--radius-sm);
+    color: var(--text-bright);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.empire-login-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.6), rgba(168, 85, 247, 0.6));
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.empire-login-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 30px 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px dashed var(--glass-border);
+    border-radius: var(--radius-sm);
+}
+
+/* Login container wider for empire list */
+#loginView {
+    max-width: 500px;
+}
+
+/* Health Status Section */
+.health-status-section {
+    margin-top: 16px;
+    padding: 14px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+}
+
+.health-status-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+}
+
+.health-status-header .icon {
+    width: 1rem;
+    height: 1rem;
+    color: var(--accent-cyan);
+}
+
+.health-refresh-btn {
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s ease;
+}
+
+.health-refresh-btn:hover {
+    color: var(--accent-cyan);
+}
+
+.health-refresh-btn .icon {
+    width: 0.9rem;
+    height: 0.9rem;
+}
+
+.health-status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.health-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.health-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+}
+
+.health-value {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.health-value.up {
+    color: #00ff88;
+}
+
+.health-value.down {
+    color: #ff4444;
+}
+
+.health-value.warning {
+    color: #ffaa00;
+}
+
+.health-status-footer {
+    margin-top: 10px;
+    text-align: center;
+}
+
+.health-status-footer a {
+    font-size: 0.72rem;
+    color: var(--accent-cyan);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.health-status-footer a:hover {
+    color: var(--text-bright);
+    text-decoration: underline;
+}
+
+/* ============================================
+   Inline style replacements (extracted from index.html)
+   ============================================ */
+
+/* Logo icon size */
+.app-logo .icon {
+    width: 4rem;
+    height: 4rem;
+}
+
+/* Input wrapper flexbox pattern */
+.input-wrapper {
+    display: flex;
+}
+
+/* Input with left icon - border radius */
+.input-with-icon {
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+/* Custom server container */
+.custom-server-container {
+    display: none;
+    margin-top: 8px;
+}
+
+.custom-server-container.visible {
+    display: block;
+}
+
+/* Custom server input */
+.custom-server-input {
+    border-radius: var(--radius-sm);
+}
+
+/* Auth tab group margin */
+.auth-tab-group {
+    margin-top: 12px;
+}
+
+/* Form hidden state */
+.auth-form {
+    display: none;
+}
+
+.auth-form.active {
+    display: block;
+}
+
+/* Empire list container */
+.empire-list-container {
+    display: none;
+}
+
+.empire-list-container.active {
+    display: block;
+}
+
+/* Registration container */
+.registration-container {
+    display: none;
+}
+
+.registration-container.active {
+    display: block;
+}
+
+/* PIN display container */
+.pin-container {
+    display: none;
+}
+
+.pin-container.visible {
+    display: block;
+}
+
+/* Health status container */
+.health-container {
+    display: none;
+}
+
+.health-container.visible {
+    display: block;
+}
+
+/* Toast container */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Loading overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.loading-overlay.hidden {
+    display: none;
+}
+
+/* Spinner */
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--glass-border);
+    border-top-color: var(--accent-cyan);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Fade in animation */
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* PIN input styling */
+.pin-input {
+    font-family: monospace;
+    letter-spacing: 2px;
+}
+
+/* Register view hidden state */
+#registerView {
+    display: none;
+}
+
+#registerView.visible {
+    display: block;
 }

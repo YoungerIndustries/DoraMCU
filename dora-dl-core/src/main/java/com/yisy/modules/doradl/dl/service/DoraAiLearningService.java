@@ -2,12 +2,16 @@ package com.yisy.modules.doradl.dl.service;
 
 import com.yisy.modules.doradl.config.DlConfig;
 import com.yisy.modules.doradl.dto.GameStateResponse;
-import com.yisy.modules.doradl.dl.network.GameStateFeatureExtractor;
+import com.yisy.modules.doradl.dl.network.FeatureExtractor;
+import com.yisy.modules.doradl.dl.network.FeatureExtractorRegistry;
 import com.yisy.modules.doradl.model.ActionReward;
 import com.yisy.modules.doradl.model.GameStateFeatures;
+import com.yisy.modules.doradl.monitor.MemoryMonitor;
+import com.yisy.modules.doradl.monitor.MemoryMonitor.MemoryLevel;
 import com.yisy.modules.doradl.network.StrategyNetwork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +21,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Manages the reinforcement learning feedback loop for Dora AI.
+ * <p>
+ * This is the local DL4J-based implementation. When dl.rest-client.enabled=true,
+ * the REST-backed implementation (DoraAiLearningServiceRest) is used instead.
+ * </p>
  * <p>
  * This service collects action-reward pairs from AI player decisions,
  * periodically trains the neural network on accumulated experience,
@@ -34,15 +42,31 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * </p>
  */
 @Service
+@ConditionalOnProperty(name = "dl.rest-client.enabled", havingValue = "false", matchIfMissing = true)
 public class DoraAiLearningService {
 
     private static final Logger log = LoggerFactory.getLogger(DoraAiLearningService.class);
 
-    /** Maximum number of experience samples to keep in the buffer before training. */
-    private static final int MAX_EXPERIENCE_BUFFER_SIZE = 500;
+    /** Maximum number of experience samples to keep in the buffer — hard cap to prevent unbounded growth. */
+    private static final int MAX_EXPERIENCE_BUFFER_SIZE = 200;
 
     /** Number of samples to trigger an automatic training cycle. */
     private static final int TRAINING_THRESHOLD = 50;
+
+    /** Maximum batch size for training to avoid OOM errors. */
+    private static final int MAX_TRAINING_BATCH_SIZE = 16;
+
+    /** Minimum batch size when memory is critical. */
+    private static final int MIN_BATCH_SIZE = 1;
+
+    /** Circuit breaker: skip training if last training threw OOM. */
+    private volatile boolean trainingCircuitOpen = false;
+
+    /** Timestamp when circuit breaker was opened (epoch ms). */
+    private volatile long circuitOpenedAt = 0;
+
+    /** Circuit breaker cooldown in milliseconds (5 minutes). */
+    private static final long CIRCUIT_COOLDOWN_MS = 5 * 60 * 1000;
 
     /** Whether learning is currently enabled. */
     private volatile boolean learningEnabled = true;
@@ -60,13 +84,15 @@ public class DoraAiLearningService {
     private volatile long lastTrainingTime = 0;
 
     private final StrategyNetwork network;
-    private final GameStateFeatureExtractor extractor;
+    private final FeatureExtractorRegistry extractorRegistry;
     private final DlConfig config;
+    private final MemoryMonitor memoryMonitor;
 
-    public DoraAiLearningService(StrategyNetwork network, GameStateFeatureExtractor extractor, DlConfig config) {
+    public DoraAiLearningService(StrategyNetwork network, FeatureExtractorRegistry extractorRegistry, DlConfig config, MemoryMonitor memoryMonitor) {
         this.network = network;
-        this.extractor = extractor;
+        this.extractorRegistry = extractorRegistry;
         this.config = config;
+        this.memoryMonitor = memoryMonitor;
 
         // Try to load existing model on startup
         try {
@@ -78,7 +104,7 @@ public class DoraAiLearningService {
                 log.info("No existing model found. Starting with random weights.");
             }
         } catch (Exception e) {
-            log.warn("Failed to load existing model: {}", e.getMessage());
+            log.warn("Failed to load existing model: {}", e.getMessage(), e);
         }
     }
 
@@ -97,11 +123,34 @@ public class DoraAiLearningService {
      */
     public void recordAction(GameStateResponse gameStateBefore, Long playerId,
                               ActionReward.Action action, double reward) {
+        recordAction(gameStateBefore, playerId, action, reward,
+                FeatureExtractorRegistry.SupportedGameType.DORAMCU_4X);
+    }
+
+    /**
+     * Records an AI action and its outcome as a training sample, with explicit game type.
+     *
+     * @param gameStateBefore the game state before the action
+     * @param playerId the AI player's session ID
+     * @param action the action that was taken
+     * @param reward the computed reward for the action (positive = good, negative = bad)
+     * @param gameType the game type for feature extraction
+     */
+    public void recordAction(GameStateResponse gameStateBefore, Long playerId,
+                              ActionReward.Action action, double reward,
+                              FeatureExtractorRegistry.SupportedGameType gameType) {
         if (!learningEnabled) {
             return;
         }
 
+        // Drop oldest samples if buffer is at capacity — prevents unbounded growth
+        if (experienceBuffer.size() >= MAX_EXPERIENCE_BUFFER_SIZE) {
+            experienceBuffer.poll();
+            log.debug("Experience buffer full — dropped oldest sample to make room");
+        }
+
         try {
+            FeatureExtractor extractor = extractorRegistry.getExtractor(gameType);
             GameStateFeatures features = extractor.extract(gameStateBefore, playerId);
             ActionReward sample = new ActionReward(features, action, reward);
             experienceBuffer.offer(sample);
@@ -115,7 +164,7 @@ public class DoraAiLearningService {
                 trainOnAccumulatedExperience();
             }
         } catch (Exception e) {
-            log.warn("Failed to record action for player {}: {}", playerId, e.getMessage());
+            log.warn("Failed to record action for player {}: {}", playerId, e.getMessage(), e);
         }
     }
 
@@ -222,7 +271,8 @@ public class DoraAiLearningService {
     /**
      * Trains the neural network on all accumulated experience in the buffer.
      * <p>
-     * This method drains the experience buffer, trains the network,
+     * This method drains the experience buffer, checks memory pressure,
+     * trains the network with memory-aware batch sizing,
      * and saves the updated model to disk.
      * </p>
      *
@@ -231,6 +281,26 @@ public class DoraAiLearningService {
     public int trainOnAccumulatedExperience() {
         if (!learningEnabled) {
             return 0;
+        }
+
+        // Check memory pressure before training
+        MemoryLevel memoryLevel = memoryMonitor.getMemoryLevel();
+        if (memoryLevel == MemoryLevel.CRITICAL) {
+            log.warn("Skipping training — memory level is CRITICAL (heap: {:.1f}%, JavaCPP: {:.1f}%)",
+                    memoryMonitor.getHeapUsageFraction() * 100,
+                    memoryMonitor.getJavacppUsageFraction() * 100);
+            return 0;
+        }
+
+        // Force GC if memory is elevated
+        if (memoryLevel == MemoryLevel.WARNING) {
+            memoryMonitor.forceGcAndLog();
+            // Re-check after GC
+            memoryLevel = memoryMonitor.getMemoryLevel();
+            if (memoryLevel == MemoryLevel.CRITICAL) {
+                log.warn("Skipping training — memory still CRITICAL after GC");
+                return 0;
+            }
         }
 
         // Drain the buffer into a list for training
@@ -258,8 +328,8 @@ public class DoraAiLearningService {
                 return 0;
             }
 
-            // Train the network
-            network.train(meaningfulSamples);
+            // Train the network with memory-aware batch sizing
+            network.train(meaningfulSamples, memoryMonitor);
             totalTrainingCycles++;
             lastTrainingTime = System.currentTimeMillis();
 
@@ -269,14 +339,32 @@ public class DoraAiLearningService {
                 log.info("Trained on {} samples (cycle #{}), model saved to {}",
                         meaningfulSamples.size(), totalTrainingCycles, modelPath);
             } catch (Exception e) {
-                log.warn("Failed to save model after training: {}", e.getMessage());
+                log.warn("Failed to save model after training: {}", e.getMessage(), e);
             }
 
             return meaningfulSamples.size();
+        } catch (OutOfMemoryError e) {
+            log.error("OutOfMemoryError during training - opening circuit breaker for {}ms. Buffer size: {}",
+                    CIRCUIT_COOLDOWN_MS, trainingData.size(), e);
+            trainingCircuitOpen = true;
+            circuitOpenedAt = System.currentTimeMillis();
+            // Force GC on OOM
+            memoryMonitor.forceGcAndLog();
+            // Put samples back in buffer for next attempt
+            for (ActionReward sample : trainingData) {
+                if (experienceBuffer.size() < MAX_EXPERIENCE_BUFFER_SIZE) {
+                    experienceBuffer.offer(sample);
+                }
+            }
+            return 0;
         } catch (Exception e) {
             log.warn("Training failed: {}", e.getMessage(), e);
             // Put samples back in buffer for next attempt
-            experienceBuffer.addAll(trainingData);
+            for (ActionReward sample : trainingData) {
+                if (experienceBuffer.size() < MAX_EXPERIENCE_BUFFER_SIZE) {
+                    experienceBuffer.offer(sample);
+                }
+            }
             return 0;
         }
     }
@@ -287,6 +375,21 @@ public class DoraAiLearningService {
      */
     @Scheduled(fixedRate = 60000)
     public void scheduledTraining() {
+        // Check circuit breaker
+        if (trainingCircuitOpen) {
+            long elapsed = System.currentTimeMillis() - circuitOpenedAt;
+            if (elapsed < CIRCUIT_COOLDOWN_MS) {
+                log.debug("Training circuit breaker open - skipping training ({}ms remaining)",
+                        CIRCUIT_COOLDOWN_MS - elapsed);
+                return;
+            }
+            log.info("Training circuit breaker cooldown expired - attempting training");
+            trainingCircuitOpen = false;
+        }
+
+        // Log memory state periodically
+        memoryMonitor.checkAndWarn();
+
         if (experienceBuffer.size() >= 10) {
             int trained = trainOnAccumulatedExperience();
             if (trained > 0) {

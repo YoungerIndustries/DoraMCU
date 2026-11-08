@@ -44,7 +44,6 @@ public class AsteroidBelt extends CelestialBody {
         this.stationSlots = DEFAULT_STATION_SLOTS;
         this.occupiedStations = new ArrayList<>();
         this.movementPenalty = DEFAULT_MOVEMENT_PENALTY;
-        generate();
     }
 
     @Override
@@ -263,6 +262,7 @@ public class AsteroidBelt extends CelestialBody {
      * @return list of outer edge hexes
      */
     public List<Hex3D> getOuterEdge() {
+        ensureGeometryGenerated();
         Hex3D center = new Hex3D(0, 0, 0);
         return map.getAll().stream()
                 .filter(h -> center.distance(h) == radius)
@@ -275,6 +275,7 @@ public class AsteroidBelt extends CelestialBody {
      * @return the center hex at (0, 0, 0)
      */
     public Hex3D getCenter() {
+        ensureGeometryGenerated();
         return map.get(0, 0);
     }
 

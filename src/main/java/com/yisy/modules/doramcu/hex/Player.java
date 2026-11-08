@@ -1,5 +1,7 @@
 package com.yisy.modules.doramcu.hex;
 
+import com.yisy.modules.doramcu.traveller.TravellerCharacter;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -100,27 +102,38 @@ public class Player {
     private Integer empireId;
     private HomeLocation homeLocation;
 
+    /** Optional Traveller character serving as this player's empire commander. */
+    private TravellerCharacter commander;
+
     /**
-     * Creates a new player with the given ID and email.
+     * Creates a new player with the given ID and email/name.
      * <p>
-     * The login PIN is auto-generated as a unique 6-digit number.
-     * Empire name defaults to "Unnamed Empire", government to DEMOCRACY,
-     * and ethos to MATERIALIST.
+     * If the string contains '@', it is treated as an email address and the empire name
+     * defaults to "Unnamed Empire". Otherwise, it is treated as a display name, the email
+     * is derived from it (e.g., "player.name@game.local"), and the empire name is set to the name.
+     * Government defaults to DEMOCRACY and ethos to MATERIALIST. Login PIN is auto-generated.
      * </p>
      *
      * @param id the unique identifier for this player
-     * @param email the email address for account management
+     * @param emailOrName the email address or display name
      */
-    public Player(int id, String email) {
-        if (email == null || email.isBlank()) {
-            throw new IllegalArgumentException("Email must not be null or blank");
+    public Player(int id, String emailOrName) {
+        if (emailOrName == null || emailOrName.isBlank()) {
+            throw new IllegalArgumentException("Email/name must not be null or blank");
         }
         this.id = id;
-        this.email = email;
         this.loginPin = generateUniquePin();
-        this.empireName = "Unnamed Empire";
         this.governmentType = GovernmentType.DEMOCRACY;
         this.ethos = Ethos.MATERIALIST;
+        if (emailOrName.contains("@")) {
+            // Treat as email
+            this.email = emailOrName;
+            this.empireName = "Unnamed Empire";
+        } else {
+            // Treat as name
+            this.email = emailOrName.toLowerCase().replace(" ", ".") + "@game.local";
+            this.empireName = emailOrName;
+        }
         initGameState();
     }
 
@@ -396,6 +409,15 @@ public class Player {
      */
     public void removePlanet(int planetId) {
         ownedPlanetIds.remove(planetId);
+    }
+
+    /**
+     * Returns the number of planets owned by this player.
+     *
+     * @return the planet count
+     */
+    public int getPlanetCount() {
+        return ownedPlanetIds.size();
     }
 
     /**
@@ -701,9 +723,84 @@ public class Player {
         return SectorBuilder.generateSubSectorName(homeLocation.getSubSectorRow(), homeLocation.getSubSectorCol());
     }
 
+    // ========================================================================
+    // Commander (TravellerCharacter) integration
+    // ========================================================================
+
+    /**
+     * Returns the Traveller character serving as this player's empire commander.
+     *
+     * @return the commander, or null if not assigned
+     */
+    public TravellerCharacter getCommander() {
+        return commander;
+    }
+
+    /**
+     * Sets the Traveller character serving as this player's empire commander.
+     *
+     * @param commander the commander character, or null to remove
+     */
+    public void setCommander(TravellerCharacter commander) {
+        this.commander = commander;
+    }
+
+    /**
+     * Returns true if this player has a Traveller character commander.
+     *
+     * @return true if a commander is assigned
+     */
+    public boolean hasCommander() {
+        return commander != null;
+    }
+
+    /**
+     * Returns the commander bonus for a given bonus type.
+     * <p>
+     * Based on the commander's career and skills, this provides modifiers
+     * to various empire operations:
+     * </p>
+     * <ul>
+     *   <li>ARMY_COMBAT — Soldier/Mercenary career provides +1 DM per rank</li>
+     *   <li>SHIP_EVASION — Pilot career provides +1% evasion per skill level</li>
+     *   <li>SHIP_DAMAGE — Gunner career provides +1% damage per skill level</li>
+     *   <li>SURVEY_SPEED — Explorer career provides +10% survey speed</li>
+     *   <li>TRADE_PROFIT — Merchant career provides +5% profit per skill level</li>
+     *   <li>GOVERNMENT — Noble career provides +1 to diplomacy checks</li>
+     * </ul>
+     *
+     * @param type the bonus type
+     * @return the bonus value (0 if no commander or no applicable career)
+     */
+    public double getCommanderBonus(CommanderBonusType type) {
+        if (commander == null) {
+            return 0;
+        }
+        return commander.getCommanderBonus(type);
+    }
+
+    /**
+     * Types of commander bonuses derived from Traveller character careers and skills.
+     */
+    public enum CommanderBonusType {
+        /** Ground combat die modifier from Soldier/Mercenary career. */
+        ARMY_COMBAT,
+        /** Ship evasion percentage bonus from Pilot career. */
+        SHIP_EVASION,
+        /** Ship damage percentage bonus from Gunner career. */
+        SHIP_DAMAGE,
+        /** Planet survey speed percentage bonus from Explorer career. */
+        SURVEY_SPEED,
+        /** Trade profit percentage bonus from Merchant career. */
+        TRADE_PROFIT,
+        /** Diplomacy/government bonus from Noble career. */
+        GOVERNMENT
+    }
+
     @Override
     public String toString() {
-        return String.format("Player{id=%d, email='%s', empire='%s', gov=%s, ethos=%s, eliminated=%s, homePlanet=%s}",
-                id, email, empireName, governmentType, ethos, eliminated, getHomePlanetId());
+        String cmd = hasCommander() ? ", commander='" + commander.getName() + "'" : "";
+        return String.format("Player{id=%d, email='%s', empire='%s', gov=%s, ethos=%s, eliminated=%s, homePlanet=%s%s}",
+                id, email, empireName, governmentType, ethos, eliminated, getHomePlanetId(), cmd);
     }
 }

@@ -127,6 +127,18 @@
         return providerSelect ? providerSelect.value : 'ollama';
     }
 
+    function getSelectedMode() {
+        const modeSelect = document.getElementById('modeSelect');
+        return modeSelect ? modeSelect.value : 'code';
+    }
+
+    function onProviderChanged(providerId) {
+        const modeGroup = document.getElementById('modeSelectorGroup');
+        if (modeGroup) {
+            modeGroup.style.display = (providerId === 'openhands') ? 'block' : 'none';
+        }
+    }
+
     // ==================== Projects ====================
     async function loadProjects() {
         try {
@@ -275,6 +287,14 @@
         projectSelect.addEventListener('change', (e) => {
             onProjectSelected(e.target.value);
         });
+
+        // Provider change — show/hide OpenHands mode selector
+        const providerSelectEl = document.getElementById('providerSelect');
+        if (providerSelectEl) {
+            providerSelectEl.addEventListener('change', (e) => {
+                onProviderChanged(e.target.value);
+            });
+        }
 
         // Modals
         document.querySelectorAll('.modal-close').forEach(btn => {
@@ -431,7 +451,7 @@
             addOllamaStatus('processing', 'Game analysis request sent');
 
             try {
-                const response = await AiApi.sendChatMessage(null, message, 'chat', projectId, null, 'text', fileContext, getSelectedProvider());
+                const response = await AiApi.sendChatMessage(null, message, getSelectedMode(), projectId, null, 'text', fileContext, getSelectedProvider());
                 if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
 
                 const contentEl = document.createElement('div');
@@ -468,7 +488,7 @@
         addOllamaStatus('processing', 'Request sent to Ollama');
 
         try {
-            const response = await AiApi.sendChatMessage(sessionId, message, 'chat', projectId, currentLanguage, lastInputType, fileContext, getSelectedProvider());
+            const response = await AiApi.sendChatMessage(sessionId, message, getSelectedMode(), projectId, currentLanguage, lastInputType, fileContext, getSelectedProvider());
 
             if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
 

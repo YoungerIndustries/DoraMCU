@@ -134,7 +134,6 @@ public class BlackHole extends CelestialBody {
         this.destructionChance = DEFAULT_DESTRUCTION_CHANCE;
         this.hasStrategicDeposit = true;
         this.strategicResource = StrategicResource.ANTI_MATTER;
-        generate();
     }
 
     /**
@@ -158,7 +157,6 @@ public class BlackHole extends CelestialBody {
         this.destructionChance = blackHoleSize.getBaseDestructionChance();
         this.hasStrategicDeposit = true;
         this.strategicResource = StrategicResource.ANTI_MATTER;
-        generate();
     }
 
     /**
@@ -410,6 +408,7 @@ public class BlackHole extends CelestialBody {
      * @return the hex at the given position, or null if out of bounds
      */
     public Hex3D get(int x, int y) {
+        ensureGeometryGenerated();
         return map.get(x, y);
     }
 
@@ -420,6 +419,7 @@ public class BlackHole extends CelestialBody {
      * @return the stored hex, or null if not present
      */
     public Hex3D get(Hex3D hex) {
+        ensureGeometryGenerated();
         return map.get(hex);
     }
 
@@ -431,6 +431,7 @@ public class BlackHole extends CelestialBody {
      * @return true if the coordinates are within the event horizon
      */
     public boolean contains(int x, int y) {
+        ensureGeometryGenerated();
         return map.contains(x, y);
     }
 
@@ -441,6 +442,7 @@ public class BlackHole extends CelestialBody {
      * @return true if the hex is within the event horizon
      */
     public boolean contains(Hex3D hex) {
+        ensureGeometryGenerated();
         return map.get(hex) != null;
     }
 
@@ -448,6 +450,7 @@ public class BlackHole extends CelestialBody {
      * @return all hex cells in the event horizon (unmodifiable collection)
      */
     public Collection<Hex3D> getAll() {
+        ensureGeometryGenerated();
         return map.getAll();
     }
 
@@ -458,6 +461,7 @@ public class BlackHole extends CelestialBody {
      * @return list of hexes matching the state
      */
     public List<Hex3D> findByState(HexState state) {
+        ensureGeometryGenerated();
         return map.findByState(state);
     }
 
@@ -468,6 +472,7 @@ public class BlackHole extends CelestialBody {
      * @return list of event horizon boundary hexes
      */
     public List<Hex3D> getEventHorizon() {
+        ensureGeometryGenerated();
         Hex3D center = new Hex3D(0, 0, 0);
         return map.getAll().stream()
                 .filter(h -> center.distance(h) == radius)
@@ -481,6 +486,7 @@ public class BlackHole extends CelestialBody {
      * @return list of inner region hexes
      */
     public List<Hex3D> getInnerRegion() {
+        ensureGeometryGenerated();
         int innerRadius = radius / 2;
         Hex3D center = new Hex3D(0, 0, 0);
         return map.getAll().stream()
@@ -513,6 +519,7 @@ public class BlackHole extends CelestialBody {
      * @return the center hex at (0, 0, 0)
      */
     public Hex3D getCenter() {
+        ensureGeometryGenerated();
         return map.get(0, 0);
     }
 

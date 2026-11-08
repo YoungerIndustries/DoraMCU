@@ -1,6 +1,7 @@
 package com.yisy.modules.doramcu.hex.manager;
 
 import com.yisy.modules.doramcu.hex.Battle;
+import com.yisy.modules.doramcu.hex.Empire;
 import com.yisy.modules.doramcu.hex.Fleet;
 import com.yisy.modules.doramcu.hex.Galaxy;
 import com.yisy.modules.doramcu.hex.Hex3D;
@@ -149,6 +150,16 @@ public interface GameContext {
 
     /** Returns the list of all space stations. */
     List<SpaceStation> getSpaceStations();
+
+    // ---- Empire management ----
+
+    /** Returns the map of all empires by ID. */
+    Map<Integer, Empire> getEmpires();
+
+    /** Returns an empire by ID, or null if not found. */
+    default Empire getEmpire(int empireId) {
+        return getEmpires().get(empireId);
+    }
 
     // ---- Manager access ----
 

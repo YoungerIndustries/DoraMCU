@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 
 @RestController
-@RequestMapping("/api/v1/sessions")
+@RequestMapping("/api/v1/4x/sessions")
 public class GameSessionController {
 
     private static final Logger log = LoggerFactory.getLogger(GameSessionController.class);

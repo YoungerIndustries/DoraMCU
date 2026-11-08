@@ -53,8 +53,27 @@ public class JwtService {
                         "JWT_SECRET must be configured for production! Set the JWT_SECRET environment variable or property.");
             }
         }
+
+        // Validate secret key length for HMAC-SHA256 (minimum 32 bytes / 256 bits recommended)
+        if (secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            if (isDevOrTest) {
+                log.warn("JWT_SECRET is shorter than 32 bytes ({} bytes). Use at least 32 bytes for production security.",
+                        secret.getBytes(StandardCharsets.UTF_8).length);
+            } else {
+                throw new IllegalStateException(
+                        "JWT_SECRET must be at least 32 bytes for production security! Current length: "
+                                + secret.getBytes(StandardCharsets.UTF_8).length + " bytes.");
+            }
+        }
+
+        // Validate JWT expiration is between 1 hour and 7 days
+        if (expiration < 3_600_000 || expiration > 604_800_000) {
+            throw new IllegalStateException(
+                    "jwt.expiration must be between 1 hour (3600000ms) and 7 days (604800000ms). Current value: " + expiration);
+        }
+
         signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        log.info("JWT service initialized successfully");
+        log.info("JWT service initialized successfully with expiration: {}ms", expiration);
     }
 
     private SecretKey getSigningKey() {

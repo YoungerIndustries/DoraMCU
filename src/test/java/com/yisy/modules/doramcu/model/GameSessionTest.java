@@ -151,7 +151,7 @@ class GameSessionTest {
     @Test
     @DisplayName("getGame - should return the game instance")
     void getGame_shouldReturnGame() {
-        Game game = session.getGame();
+        Game game = (Game) session.getGame();
         assertNotNull(game);
         assertEquals("Test Game", game.getName());
     }

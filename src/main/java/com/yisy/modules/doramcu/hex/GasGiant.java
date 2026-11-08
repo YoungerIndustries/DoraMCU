@@ -47,7 +47,6 @@ public class GasGiant extends CelestialBody {
         this.occupiedStations = new ArrayList<>();
         this.gravitationalPull = DEFAULT_GRAVITATIONAL_PULL;
         this.atmosphericResources = new HashSet<>();
-        generate();
     }
 
     @Override
@@ -261,6 +260,7 @@ public class GasGiant extends CelestialBody {
      * @return the hex at the given position, or null if out of bounds
      */
     public Hex3D get(int x, int y) {
+        ensureGeometryGenerated();
         return map.get(x, y);
     }
 
@@ -271,6 +271,7 @@ public class GasGiant extends CelestialBody {
      * @return the stored hex, or null if not present
      */
     public Hex3D get(Hex3D hex) {
+        ensureGeometryGenerated();
         return map.get(hex);
     }
 
@@ -282,6 +283,7 @@ public class GasGiant extends CelestialBody {
      * @return true if the coordinates are within the gas giant
      */
     public boolean contains(int x, int y) {
+        ensureGeometryGenerated();
         return map.contains(x, y);
     }
 
@@ -292,6 +294,7 @@ public class GasGiant extends CelestialBody {
      * @return true if the hex is within the gas giant
      */
     public boolean contains(Hex3D hex) {
+        ensureGeometryGenerated();
         return map.get(hex) != null;
     }
 
@@ -299,6 +302,7 @@ public class GasGiant extends CelestialBody {
      * @return all hex cells in the gas giant (unmodifiable collection)
      */
     public Collection<Hex3D> getAll() {
+        ensureGeometryGenerated();
         return map.getAll();
     }
 
@@ -309,6 +313,7 @@ public class GasGiant extends CelestialBody {
      * @return list of hexes matching the state
      */
     public List<Hex3D> findByState(HexState state) {
+        ensureGeometryGenerated();
         return map.findByState(state);
     }
 
@@ -318,6 +323,7 @@ public class GasGiant extends CelestialBody {
      * @return list of atmosphere hexes
      */
     public List<Hex3D> getAtmosphere() {
+        ensureGeometryGenerated();
         int atmosphereInner = (int) Math.floor(radius * 0.75);
         Hex3D center = new Hex3D(0, 0, 0);
         return map.getAll().stream()
@@ -334,6 +340,7 @@ public class GasGiant extends CelestialBody {
      * @return list of core hexes
      */
     public List<Hex3D> getCore() {
+        ensureGeometryGenerated();
         int coreRadius = (int) Math.floor(radius * 0.25);
         Hex3D center = new Hex3D(0, 0, 0);
         return map.getAll().stream()
@@ -347,6 +354,7 @@ public class GasGiant extends CelestialBody {
      * @return the center hex at (0, 0, 0)
      */
     public Hex3D getCenter() {
+        ensureGeometryGenerated();
         return map.get(0, 0);
     }
 

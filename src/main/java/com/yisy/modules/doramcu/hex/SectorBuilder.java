@@ -219,13 +219,50 @@ public class SectorBuilder {
     }
 
     /**
-     * Generates the standard subsector name for the given grid position.
-     * Subsector names use a numeric format: "SS-RRCC" where RR and CC are
-     * zero-padded row and column values.
+     * Traveller-style subsector names. Each sector has 100 subsectors, so we need
+     * a large pool of names. These follow the Traveller convention of naming
+     * subsectors after their capital system or a notable feature.
+     */
+    private static final String[] SUBSECTOR_NAMES = {
+            // Row 0
+            "Alphauri", "Bellerophon", "Centauri", "Deneb", "Eridanus",
+            "Fomalhaut", "Gienah", "Hamal", "Izar", "Kochab",
+            // Row 1
+            "Lalande", "Mizar", "Nunki", "Omicron", "Procyon",
+            "Regor", "Sirius", "Toliman", "Upsilon", "Vega",
+            // Row 2
+            "Wolfram", "Xanthos", "Yildun", "Zaurak", "Alderaan",
+            "Babylon", "Coruscant", "Dantooine", "Endor", "Felucia",
+            // Row 3
+            "Gallifrey", "Hoth", "Ithaca", "Jabbar", "Kessel",
+            "Lone Star", "Mandalore", "Naboo", "Ossus", "Pandora",
+            // Row 4
+            "Quantum", "Rigel", "Serenity", "Tatooine", "Utopia",
+            "Vulcan", "Wakanda", "Xenon", "Yavin", "Zephyr",
+            // Row 5
+            "Argo", "Bellerive", "Cassiopeia", "Drayson", "Elysium",
+            "Fortuna", "Ganymede", "Helios", "Imbrium", "Janus",
+            // Row 6
+            "Kepler", "Lazarus", "Meridian", "Nova", "Orion",
+            "Pegasus", "Quasar", "Rogue", "Solomon", "Titan",
+            // Row 7
+            "Ulysses", "Vanguard", "Wraith", "Xenophobe", "Ymir",
+            "Zodiar", "Aethelgard", "Bastion", "Crimson", "Dreadnought",
+            // Row 8
+            "Ember", "Frostbite", "Goliath", "Havoc", "Inferno",
+            "Juggernaut", "Kraken", "Luminous", "Maverick", "Nebula",
+            // Row 9
+            "Obsidian", "Phoenix", "Quicksilver", "Raptor", "Sentinel",
+            "Thunder", "Umbra", "Vortex", "Warden", "Zenith"
+    };
+
+    /**
+     * Generates a Traveller-style subsector name for the given grid position.
+     * Names are deterministic based on position, so they persist across restarts.
      *
      * @param subRow the subsector row (0-9)
      * @param subCol the subsector column (0-9)
-     * @return the subsector name (e.g., "SS-0000", "SS-0503")
+     * @return the subsector name (e.g., "Alphauri", "Bellerophon", "Lone Star")
      */
     public static String generateSubSectorName(int subRow, int subCol) {
         if (subRow < 0 || subRow >= Galaxy.SUBSECTOR_GRID_SIZE) {
@@ -234,6 +271,11 @@ public class SectorBuilder {
         if (subCol < 0 || subCol >= Galaxy.SUBSECTOR_GRID_SIZE) {
             throw new IllegalArgumentException("SubCol must be between 0 and " + (Galaxy.SUBSECTOR_GRID_SIZE - 1) + ": " + subCol);
         }
+        int index = subRow * Galaxy.SUBSECTOR_GRID_SIZE + subCol;
+        if (index < SUBSECTOR_NAMES.length) {
+            return SUBSECTOR_NAMES[index];
+        }
+        // Fallback for any unexpected positions
         return String.format("SS-%02d%02d", subRow, subCol);
     }
 

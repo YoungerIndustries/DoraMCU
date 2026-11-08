@@ -13,6 +13,8 @@ public class FleetDto {
     private int positionX;
     private int positionY;
     private int positionZ;
+    /** ID of the SolarSystem this fleet is currently in, for system-level drill-down matching. */
+    private Integer systemId;
     /** Subsector row (0-9) where this fleet is located, for map positioning. */
     private int subSectorRow;
     /** Subsector column (0-9) where this fleet is located, for map positioning. */
@@ -99,6 +101,14 @@ public class FleetDto {
 
     public void setPositionZ(int positionZ) {
         this.positionZ = positionZ;
+    }
+
+    public Integer getSystemId() {
+        return systemId;
+    }
+
+    public void setSystemId(Integer systemId) {
+        this.systemId = systemId;
     }
 
     public int getSubSectorRow() {

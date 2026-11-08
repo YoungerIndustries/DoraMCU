@@ -10,6 +10,10 @@ import com.yisy.modules.doramcu.hex.SolarSystem;
 import com.yisy.modules.doramcu.hex.SolarSystemEntity;
 import com.yisy.modules.doramcu.hex.WeaponType;
 import com.yisy.modules.doramcu.hex.Player;
+import com.yisy.modules.doramcu.traveller.HighGuardShipDesign;
+import com.yisy.modules.doramcu.traveller.HighGuardShipFactory;
+import com.yisy.modules.doramcu.traveller.ShipDesign;
+import com.yisy.modules.doramcu.traveller.TravellerShipFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -187,5 +191,132 @@ public class FleetManager {
         ship.addComponent(ShipComponent.shield(1));
         context.addShip(ship);
         return ship;
+    }
+
+    // ============================================================
+    // Traveller Ship Design Integration
+    // ============================================================
+
+    /**
+     * Creates a fleet from a list of Traveller ShipDesigns.
+     * <p>
+     * Each design is converted to a hex Ship using {@link TravellerShipFactory}
+     * and added to the fleet. The fleet is registered with the game context.
+     * </p>
+     *
+     * @param name the fleet name
+     * @param owner the owning player
+     * @param designs the Traveller ship designs to convert
+     * @return the newly created fleet
+     */
+    public Fleet createFleetFromDesigns(String name, Player owner, List<ShipDesign> designs) {
+        if (designs == null || designs.isEmpty()) {
+            throw new IllegalArgumentException("Design list must not be null or empty");
+        }
+
+        int fleetId = context.getNextFleetIdAndIncrement();
+        Fleet fleet = new Fleet(fleetId, name);
+
+        TravellerShipFactory factory = new TravellerShipFactory(context.getNextShipIdAndIncrement());
+        for (ShipDesign design : designs) {
+            Ship ship = factory.convert(design);
+            context.addShip(ship);
+            fleet.addShip(ship);
+        }
+
+        return context.addFleet(fleet, owner);
+    }
+
+    /**
+     * Creates a fleet from a list of High Guard ShipDesigns.
+     * <p>
+     * Each design is converted to a hex Ship using {@link HighGuardShipFactory}
+     * and added to the fleet. The fleet is registered with the game context.
+     * </p>
+     *
+     * @param name the fleet name
+     * @param owner the owning player
+     * @param designs the High Guard ship designs to convert
+     * @return the newly created fleet
+     */
+    public Fleet createFleetFromHighGuardDesigns(String name, Player owner, List<HighGuardShipDesign> designs) {
+        if (designs == null || designs.isEmpty()) {
+            throw new IllegalArgumentException("Design list must not be null or empty");
+        }
+
+        int fleetId = context.getNextFleetIdAndIncrement();
+        Fleet fleet = new Fleet(fleetId, name);
+
+        HighGuardShipFactory factory = new HighGuardShipFactory(context.getNextShipIdAndIncrement());
+        for (HighGuardShipDesign design : designs) {
+            Ship ship = factory.convert(design);
+            context.addShip(ship);
+            fleet.addShip(ship);
+        }
+
+        return context.addFleet(fleet, owner);
+    }
+
+    /**
+     * Converts a single Traveller ShipDesign to a hex Ship and registers it.
+     *
+     * @param design the Traveller ship design
+     * @return the converted ship
+     */
+    public Ship convertShipDesign(ShipDesign design) {
+        TravellerShipFactory factory = new TravellerShipFactory(context.getNextShipIdAndIncrement());
+        Ship ship = factory.convert(design);
+        context.addShip(ship);
+        return ship;
+    }
+
+    /**
+     * Converts a single High Guard ShipDesign to a hex Ship and registers it.
+     *
+     * @param design the High Guard ship design
+     * @return the converted ship
+     */
+    public Ship convertHighGuardDesign(HighGuardShipDesign design) {
+        HighGuardShipFactory factory = new HighGuardShipFactory(context.getNextShipIdAndIncrement());
+        Ship ship = factory.convert(design);
+        context.addShip(ship);
+        return ship;
+    }
+
+    /**
+     * Creates a ship from a ShipDesignRequest DTO.
+     * Converts the DTO to a ShipDesign, then to a hex Ship.
+     *
+     * @param player the owning player
+     * @param request the ship design request
+     * @return the new ship ID
+     */
+    public int createShipFromDesign(Player player, com.yisy.modules.doramcu.dto.ShipDesignRequest request) {
+        // Convert DTO to ShipDesign domain object
+        int designId = context.getNextShipIdAndIncrement();
+        ShipDesign design = new ShipDesign(designId, request.getName(), request.getTotalTonnage());
+        if (request.getCargoTons() != null) design.setCargoTons(request.getCargoTons());
+        if (request.getPassengerCount() != null) design.setPassengerCount(request.getPassengerCount());
+        if (request.getFuelTons() != null) design.setFuelTons(request.getFuelTons());
+
+        Ship ship = convertShipDesign(design);
+        ship.setName(request.getName());
+
+        // Add to player's first fleet or create a new one
+        java.util.Set<Integer> fleetIdSet = player.getOwnedFleetIds();
+        if (fleetIdSet.isEmpty()) {
+            int fleetId = context.getNextFleetIdAndIncrement();
+            Fleet fleet = new Fleet(fleetId, request.getName() + " Fleet");
+            fleet.addShip(ship);
+            context.addFleet(fleet, player);
+        } else {
+            int firstFleetId = fleetIdSet.iterator().next();
+            Fleet fleet = context.getFleet(firstFleetId);
+            if (fleet != null) {
+                fleet.addShip(ship);
+            }
+        }
+
+        return ship.getId();
     }
 }

@@ -74,9 +74,44 @@
                     </div>
                     <span class="command-bar-item-shortcut">R</span>
                 </div>
+                <div class="command-bar-item" data-action="develop-character">
+                    <span class="command-bar-item-icon"><svg class="icon"><use href="#icon-user"></use></svg></span>
+                    <div class="command-bar-item-text">
+                        <div class="command-bar-item-title">Develop Character</div>
+                        <div class="command-bar-item-desc">Open character development panel</div>
+                    </div>
+                </div>
+                <div class="command-bar-item" data-action="trade-market">
+                    <span class="command-bar-item-icon"><svg class="icon"><use href="#icon-diamond"></use></svg></span>
+                    <div class="command-bar-item-text">
+                        <div class="command-bar-item-title">Trade Market</div>
+                        <div class="command-bar-item-desc">Open trade market for current system</div>
+                    </div>
+                </div>
+                <div class="command-bar-item" data-action="psionics" id="psionicBtn">
+                    <span class="command-bar-item-icon"><svg class="icon"><use href="#icon-star"></use></svg></span>
+                    <div class="command-bar-item-text">
+                        <div class="command-bar-item-title">Psionics</div>
+                        <div class="command-bar-item-desc">Psionic detection, powers, and encounters</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+    <!-- Connection Status Indicator -->
+    <div id="connectionStatus" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(2,6,23,0.95); z-index:10000; display:flex; align-items:center; justify-content:center; flex-direction:column;">
+        <div style="text-align:center; color:#e2e8f0; font-family:inherit;">
+            <div style="font-size:3rem; margin-bottom:1rem;">🌌</div>
+            <div style="font-size:1.5rem; font-weight:700; margin-bottom:0.5rem;">Connecting to Galaxy...</div>
+            <div id="connectionStatusText" style="font-size:0.9rem; color:#94a3b8; margin-bottom:2rem;">Establishing connection</div>
+            <div style="width:200px; height:4px; background:rgba(255,255,255,0.1); border-radius:2px; margin:0 auto; overflow:hidden;">
+                <div id="connectionProgressBar" style="width:0%; height:100%; background:linear-gradient(90deg,#06b6d4,#8b5cf6); border-radius:2px; transition:width 0.3s;"></div>
+            </div>
+            <div id="connectionError" style="display:none; margin-top:1.5rem; padding:1rem; background:rgba(239,68,68,0.2); border:1px solid rgba(239,68,68,0.5); border-radius:0.5rem; color:#fca5a5; font-size:0.85rem; max-width:400px; margin-left:auto; margin-right:auto;"></div>
+            <button id="retryConnectionBtn" style="display:none; margin-top:1rem; padding:0.5rem 1.5rem; background:#06b6d4; color:white; border:none; border-radius:0.5rem; cursor:pointer; font-size:0.9rem;">Retry Connection</button>
+        </div>
+    </div>
+
     <!-- Login Screen -->
     <div class="login-overlay" id="loginOverlay">
         <div class="login-container">
@@ -259,7 +294,64 @@
                             <span class="empire-detail-label">Capital</span>
                             <span class="empire-detail-value" id="empireCapital">—</span>
                         </div>
+                        <div class="empire-detail-row">
+                            <span class="empire-detail-label">Sector</span>
+                            <span class="empire-detail-value" id="empireSector">—</span>
+                        </div>
+                        <div class="empire-detail-row">
+                            <span class="empire-detail-label">Subsector</span>
+                            <span class="empire-detail-value" id="empireSubSector">—</span>
+                        </div>
+                        <div class="empire-detail-row">
+                            <span class="empire-detail-label">System</span>
+                            <span class="empire-detail-value" id="empireSystem">—</span>
+                        </div>
                     </div>
+                    <!-- Empire Status Bar -->
+                    <div class="empire-status-bar" id="empireStatusBar">
+                        <div class="empire-status-item">
+                            <span class="empire-status-label">Integrity</span>
+                            <div class="empire-integrity-bar">
+                                <div class="empire-integrity-fill" id="empireIntegrityFill" style="width: 100%"></div>
+                            </div>
+                            <span class="empire-status-value" id="empireIntegrity">100%</span>
+                        </div>
+                        <div class="empire-status-row">
+                            <div class="empire-status-item">
+                                <span class="empire-status-label">⚔️ Power</span>
+                                <span class="empire-status-value" id="empireMilitaryPower">0</span>
+                            </div>
+                            <div class="empire-status-item">
+                                <span class="empire-status-label">🔨 Queue</span>
+                                <span class="empire-status-value" id="empireShipQueue">0</span>
+                            </div>
+                            <div class="empire-status-item">
+                                <span class="empire-status-label">💥 Battles</span>
+                                <span class="empire-status-value" id="empireActiveBattles">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Commander Section (Traveller RPG) -->
+            <div class="panel-section" id="commanderSection" style="display:none;">
+                <h3><svg class="icon"><use href="#icon-user"></use></svg> Commander</h3>
+                <div class="empire-component-panel" id="commanderPanel">
+                    <div class="commander-header">
+                        <span class="commander-name" id="commanderName">—</span>
+                        <span class="commander-career" id="commanderCareer">—</span>
+                    </div>
+                    <div class="ability-grid" id="abilityGrid">
+                        <div class="ability-item"><span class="ability-label">ST</span><span class="ability-value" id="abilityST">—</span></div>
+                        <div class="ability-item"><span class="ability-label">DX</span><span class="ability-value" id="abilityDX">—</span></div>
+                        <div class="ability-item"><span class="ability-label">EN</span><span class="ability-value" id="abilityEN">—</span></div>
+                        <div class="ability-item"><span class="ability-label">IN</span><span class="ability-value" id="abilityIN">—</span></div>
+                        <div class="ability-item"><span class="ability-label">ED</span><span class="ability-value" id="abilityED">—</span></div>
+                        <div class="ability-item"><span class="ability-label">SO</span><span class="ability-value" id="abilitySO">—</span></div>
+                    </div>
+                    <div class="skills-list" id="skillsList"></div>
+                    <button class="btn-small primary" id="developCharacterBtn" style="margin-top:8px; width:100%;">Develop Character</button>
                 </div>
             </div>
 
@@ -309,6 +401,29 @@
                     <div class="component-stat-row">
                         <span class="component-stat-label">Hull</span>
                         <span class="component-stat-value" id="navyHull">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mercenary Section (Traveller RPG) -->
+            <div class="panel-section" id="mercenarySection" style="display:none;">
+                <h3><svg class="icon"><use href="#icon-shield"></use></svg> Mercenaries</h3>
+                <div class="empire-component-panel" id="mercenaryPanel">
+                    <div class="component-stat-row">
+                        <span class="component-stat-label">Units</span>
+                        <span class="component-stat-value" id="mercenaryUnitCount">0</span>
+                    </div>
+                    <div class="component-stat-row">
+                        <span class="component-stat-label">Ground Strength</span>
+                        <span class="component-stat-value" id="mercenaryGroundStrength">0</span>
+                    </div>
+                    <div class="component-stat-row">
+                        <span class="component-stat-label">Ticket Status</span>
+                        <span class="component-stat-value" id="mercenaryTicketStatus">—</span>
+                    </div>
+                    <div class="component-stat-row">
+                        <span class="component-stat-label">Ticket Income</span>
+                        <span class="component-stat-value" id="mercenaryTicketIncome">0</span>
                     </div>
                 </div>
             </div>
@@ -417,58 +532,107 @@
 
         <!-- Galaxy Map -->
         <main class="galaxy-panel">
-            <!-- Sector Map View (default) -->
-            <div class="sector-map-view" id="sectorMapView">
-                <canvas id="galaxyCanvas"></canvas>
-            </div>
-            
-            <!-- Sector Detail View (hidden by default) -->
-            <div class="sector-detail-view hidden" id="sectorDetailView">
-                <div class="sector-detail-header">
-                    <button class="btn-small" id="backToSectorMapBtn">
-                        <svg class="icon"><use href="#icon-arrow-left"></use></svg> Back to Sector Map
-                    </button>
-                    <h3 class="sector-detail-title" id="sectorDetailTitle">Sector Detail</h3>
+            <!-- View 1: Sector Cards (default) -->
+            <div class="galaxy-view" id="sectorCardsView">
+                <div class="galaxy-view-header">
+                    <h2 class="galaxy-view-title">Galaxy Map</h2>
+                    <div class="galaxy-view-stats" id="galaxyViewStats">
+                        <!-- Dynamically populated: sectors, subsectors, systems -->
+                    </div>
                 </div>
-                <div class="sector-detail-body">
-                    <!-- Subsectors in this sector -->
-                    <div class="sector-subsectors" id="sectorSubsectors">
+                <div class="galaxy-view-toolbar">
+                    <input type="text" class="search-input" id="sectorSearchInput" placeholder="🔍 Search sectors..." />
+                    <div class="search-results-count" id="sectorSearchResults"></div>
+                </div>
+                <div class="galaxy-view-body">
+                    <div class="sector-cards-grid" id="sectorCardsGrid">
+                        <!-- Dynamically populated: sector cards -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- View 2: Subsector Cards (drill down from sector) -->
+            <div class="galaxy-view hidden" id="subsectorCardsView">
+                <div class="galaxy-view-header">
+                    <button class="btn-small" id="backToSectorsBtn">
+                        <svg class="icon"><use href="#icon-arrow-left"></use></svg> Back to Sectors
+                    </button>
+                    <h2 class="galaxy-view-title" id="subsectorViewTitle">Sector Subsectors</h2>
+                    <div class="galaxy-view-stats" id="subsectorViewStats">
                         <!-- Dynamically populated -->
                     </div>
-                    <!-- Systems in selected subsector -->
-                    <div class="sector-systems hidden" id="sectorSystems">
-                        <div class="systems-header">
-                            <h4 id="systemSubsectorTitle">Systems</h4>
-                            <button class="btn-small" id="backToSubsectorsBtn">
-                                <svg class="icon"><use href="#icon-arrow-left"></use></svg> Back to Subsectors
-                            </button>
+                    <label class="owned-filter-toggle">
+                        <input type="checkbox" id="showOnlyOwnedSubsectors" />
+                        <span>Show Only Owned</span>
+                    </label>
+                </div>
+                <div class="galaxy-view-body">
+                    <div class="subsector-cards-grid" id="subsectorCardsGrid">
+                        <!-- Dynamically populated: subsector cards -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- View 3: Subsector Hex Grid (10x10 drilldown of all systems) -->
+            <div class="galaxy-view hidden" id="subsectorHexGridView">
+                <div class="galaxy-view-header">
+                    <button class="btn-small" id="backToSubsectorCardsBtn">
+                        <svg class="icon"><use href="#icon-arrow-left"></use></svg> Back to Subsectors
+                    </button>
+                    <h2 class="galaxy-view-title" id="subsectorHexGridTitle">Subsector Map</h2>
+                    <div class="system-detail-stats" id="subsectorHexGridStats">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+                <div class="galaxy-view-body hex-grid-body">
+                    <div class="hex-grid-container" id="hexGridContainer">
+                        <canvas id="subsectorHexGridCanvas"></canvas>
+                    </div>
+                    <div class="hex-grid-legend" id="hexGridLegend">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- View 4: System Detail (drill down from hex grid) -->
+            <div class="galaxy-view hidden" id="systemDetailView">
+                <div class="galaxy-view-header">
+                    <button class="btn-small" id="backToSubsectorsBtn2">
+                        <svg class="icon"><use href="#icon-arrow-left"></use></svg> Back to Hex Grid
+                    </button>
+                    <h2 class="galaxy-view-title" id="systemDetailTitle">System Detail</h2>
+                    <select class="system-selector" id="systemSelector" title="Switch between systems in this subsector">
+                        <!-- Dynamically populated -->
+                    </select>
+                    <div class="system-detail-stats" id="systemDetailStats">
+                        <!-- Dynamically populated -->
+                    </div>
+                    <button class="btn-small primary" id="tradeSystemBtn" style="display:none;" data-tooltip="Open trade market for this system">
+                        <svg class="icon"><use href="#icon-diamond"></use></svg> Trade
+                    </button>
+                </div>
+                <div class="galaxy-view-body system-detail-body">
+                    <!-- Left: System map with MDrive range -->
+                    <div class="system-map-container" id="systemMapContainer">
+                        <canvas id="systemMapCanvas"></canvas>
+                        <div class="system-map-legend" id="systemMapLegend">
+                            <!-- Dynamically populated -->
                         </div>
-                        <div class="systems-list" id="systemsList">
+                    </div>
+                    <!-- Right: System info panel -->
+                    <div class="system-info-panel" id="systemInfoPanel">
+                        <h3>Planets</h3>
+                        <div class="planet-list" id="planetList">
+                            <!-- Dynamically populated -->
+                        </div>
+                        <h3>Fleets</h3>
+                        <div class="fleet-list-system" id="fleetListSystem">
                             <!-- Dynamically populated -->
                         </div>
                     </div>
                 </div>
             </div>
-            
-            <div class="galaxy-controls">
-                <button class="galaxy-control-btn" id="zoomInBtn" data-tooltip="Zoom In (+)"><svg class="icon"><use href="#icon-zoom-in"></use></svg></button>
-                <button class="galaxy-control-btn" id="zoomOutBtn" data-tooltip="Zoom Out (-)"><svg class="icon"><use href="#icon-zoom-out"></use></svg></button>
-                <button class="galaxy-control-btn" id="resetViewBtn" data-tooltip="Reset View (R)"><svg class="icon"><use href="#icon-reset"></use></svg></button>
-            </div>
-            <div class="galaxy-legend">
-                <div class="legend-item">
-                    <div class="legend-dot" style="background: var(--planet-color);"></div>
-                    <span>Planet</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-dot" style="background: var(--fleet-color);"></div>
-                    <span>Fleet</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-dot" style="background: var(--star-color);"></div>
-                    <span>Star</span>
-                </div>
-            </div>
+
             <!-- Minimap -->
             <div class="minimap" id="minimap">
                 <canvas id="minimapCanvas"></canvas>
@@ -497,6 +661,19 @@
                         <svg class="icon"><use href="#icon-sword"></use></svg> Engage Combat
                         <span class="kbd-shortcut">C</span>
                     </button>
+                    <button class="action-btn" id="buildStationBtn" disabled data-tooltip="Build a space station">
+                        <svg class="icon"><use href="#icon-diamond"></use></svg> Build Station
+                    </button>
+                    <button class="action-btn" id="buildFacilityBtn" disabled data-tooltip="Build a planet facility">
+                        <svg class="icon"><use href="#icon-hammer"></use></svg> Build Facility
+                    </button>
+                    <button class="action-btn" id="createFleetBtn" disabled data-tooltip="Create a new fleet">
+                        <svg class="icon"><use href="#icon-rocket"></use></svg> Create Fleet
+                    </button>
+                    <button class="action-btn" id="viewBattlesBtn" disabled data-tooltip="View active battles">
+                        <svg class="icon"><use href="#icon-sword"></use></svg> Battles
+                        <span class="badge" id="battleCountBadge" style="display:none">0</span>
+                    </button>
                 </div>
             </div>
 
@@ -509,7 +686,7 @@
                 </div>
             </div>
 
-            <div class="panel-section">
+            <div class="panel-section" id="targetPanel">
                 <h3><svg class="icon"><use href="#icon-target"></use></svg> Target</h3>
                 <div class="form-group">
                     <label for="targetCoords">Coordinates</label>
@@ -783,9 +960,321 @@
         </div>
     </div>
 
-    <script src="js/game-api.js?v=18"></script>
-    <script src="js/game-sse.js?v=18"></script>
-    <script src="js/game-ui.js?v=18"></script>
+    <!-- Build Station Modal -->
+    <div class="modal-overlay hidden" id="buildStationModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🛸 Build Space Station</h3>
+                <button class="modal-close" id="closeBuildStationModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="stationTypeSelect">Station Type</label>
+                    <select class="form-input" id="stationTypeSelect">
+                        <option value="MILITARY">Military (500 hull, 100 shields, 4 slots)</option>
+                        <option value="SHIPYARD">Shipyard (300 hull, 50 shields, 3 slots)</option>
+                        <option value="MINING">Mining (200 hull, 30 shields, 2 slots)</option>
+                        <option value="RESEARCH">Research (250 hull, 40 shields, 2 slots)</option>
+                        <option value="TRADE">Trade (150 hull, 20 shields, 2 slots)</option>
+                        <option value="COLONY">Colony (200 hull, 30 shields, 3 slots)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="stationPlanetSelect">Planet (optional)</label>
+                    <select class="form-input" id="stationPlanetSelect">
+                        <option value="">Home Planet (default)</option>
+                    </select>
+                </div>
+                <div id="buildStationError" class="login-error" style="display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-small" id="cancelBuildStation">Cancel</button>
+                <button class="btn-small primary" id="confirmBuildStation">Build Station</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Build Facility Modal -->
+    <div class="modal-overlay hidden" id="buildFacilityModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🏗️ Build Planet Facility</h3>
+                <button class="modal-close" id="closeBuildFacilityModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="facilityPlanetSelect">Planet</label>
+                    <select class="form-input" id="facilityPlanetSelect">
+                        <option value="">Select a planet...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="facilityTypeSelect">Facility Type</label>
+                    <select class="form-input" id="facilityTypeSelect">
+                        <option value="COLONY_DOME">Colony Dome (+2 food)</option>
+                        <option value="SHIPYARD">Shipyard (+3 minerals)</option>
+                        <option value="SENSOR_ARRAY">Sensor Array (+1 research)</option>
+                        <option value="MINING_FACILITY">Mining Facility (+4 minerals)</option>
+                        <option value="POWER_PLANT">Power Plant (+3 energy)</option>
+                        <option value="DEFENSE_TURRET">Defense Turret (+10 defense)</option>
+                        <option value="RESEARCH_LAB">Research Lab (+3 research)</option>
+                        <option value="TRADE_PORT">Trade Port (+2 influence, +1 energy)</option>
+                        <option value="MILITARY_BASE">Military Base (+2 minerals, +5 defense)</option>
+                        <option value="AGRICULTURAL_CENTER">Agricultural Center (+4 food)</option>
+                    </select>
+                </div>
+                <div id="buildFacilityError" class="login-error" style="display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-small" id="cancelBuildFacility">Cancel</button>
+                <button class="btn-small primary" id="confirmBuildFacility">Build Facility</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Fleet Modal -->
+    <div class="modal-overlay hidden" id="createFleetModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>🚀 Create New Fleet</h3>
+                <button class="modal-close" id="closeCreateFleetModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="fleetNameInput">Fleet Name</label>
+                    <input type="text" class="form-input" id="fleetNameInput" placeholder="Enter fleet name...">
+                </div>
+                <div id="createFleetError" class="login-error" style="display:none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-small" id="cancelCreateFleet">Cancel</button>
+                <button class="btn-small primary" id="confirmCreateFleet">Create Fleet</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Battle Status Modal -->
+    <div class="modal-overlay hidden" id="battleStatusModal">
+        <div class="modal-content" style="max-width:700px;">
+            <div class="modal-header">
+                <h3>⚔️ Active Battles</h3>
+                <button class="modal-close" id="closeBattleStatusModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="battleStatusList">
+                    <div class="text-center" style="color: var(--text-muted); padding: 20px;">No active battles</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-small" id="closeBattleStatus">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Character Creation Modal -->
+    <div class="modal-overlay hidden" id="characterModal">
+        <div class="modal-content" style="max-width:600px;">
+            <div class="turn-phase-header">
+                <h3><svg class="icon"><use href="#icon-user"></use></svg> Character Development</h3>
+            </div>
+            <div class="turn-phase-body">
+                <div id="characterCreationForm">
+                    <div class="form-group">
+                        <label>Character Name</label>
+                        <input type="text" class="form-input" id="characterNameInput" placeholder="Enter character name">
+                    </div>
+                    <div class="form-group">
+                        <label>Career</label>
+                        <select class="form-input" id="careerSelect">
+                            <option value="SOLDIER">Soldier</option>
+                            <option value="EXPLORER">Explorer</option>
+                            <option value="GUNNER">Gunner</option>
+                            <option value="PILOT">Pilot</option>
+                            <option value="MERCHANT">Merchant</option>
+                            <option value="SCOUT">Scout</option>
+                            <option value="SPY">Spy</option>
+                            <option value="NOBLE">Noble</option>
+                        </select>
+                    </div>
+                    <div id="characterPreview" style="margin-top:16px;"></div>
+                </div>
+            </div>
+            <div class="turn-phase-actions">
+                <button class="btn-small" id="characterModalClose">Cancel</button>
+                <button class="btn-small" id="characterGenerateBtn">Random Character</button>
+                <button class="btn-small primary" id="characterServeBtn">Serve Career Term</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ship Design Modal -->
+    <div class="modal-overlay hidden" id="shipDesignModal">
+        <div class="modal-content" style="max-width:700px;">
+            <div class="turn-phase-header">
+                <h3><svg class="icon"><use href="#icon-hammer"></use></svg> Ship Design Editor</h3>
+            </div>
+            <div class="turn-phase-body">
+                <div class="form-group">
+                    <label>Ship Name</label>
+                    <input type="text" class="form-input" id="shipDesignName" placeholder="Enter ship name">
+                </div>
+                <div class="form-group">
+                    <label>Total Tonnage: <span id="tonnageValue">2000</span></label>
+                    <input type="range" class="form-input" id="shipDesignTonnage" min="1000" max="30000" step="1000" value="2000">
+                </div>
+                <div class="form-group">
+                    <label>Jump Rating</label>
+                    <select class="form-input" id="shipDesignJump">
+                        <option value="0">None</option>
+                        <option value="1">J-1</option>
+                        <option value="2">J-2</option>
+                        <option value="3" selected>J-3</option>
+                        <option value="4">J-4</option>
+                        <option value="5">J-5</option>
+                        <option value="6">J-6</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Maneuver Rating</label>
+                    <select class="form-input" id="shipDesignManeuver">
+                        <option value="0">None</option>
+                        <option value="1">M-1</option>
+                        <option value="2" selected>M-2</option>
+                        <option value="3">M-3</option>
+                        <option value="4">M-4</option>
+                        <option value="5">M-5</option>
+                        <option value="6">M-6</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Cargo Tons</label>
+                    <input type="number" class="form-input" id="shipDesignCargo" min="0" value="500">
+                </div>
+                <div class="form-group">
+                    <label>Fuel Tons</label>
+                    <input type="number" class="form-input" id="shipDesignFuel" min="0" value="200">
+                </div>
+                <div class="form-group">
+                    <label>Passengers</label>
+                    <input type="number" class="form-input" id="shipDesignPassengers" min="0" value="0">
+                </div>
+                <div id="shipDesignSummary" style="margin-top:16px; padding:12px; background:rgba(255,255,255,0.05); border-radius:8px;"></div>
+            </div>
+            <div class="turn-phase-actions">
+                <button class="btn-small" id="shipDesignModalClose">Cancel</button>
+                <button class="btn-small primary" id="shipDesignBuildBtn">Build Ship</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Psionics Modal -->
+    <div class="modal-overlay hidden" id="psionicModal">
+        <div class="modal-content" style="max-width:900px;">
+            <div class="turn-phase-header">
+                <h3><svg class="icon"><use href="#icon-star"></use></svg> Psionics (B03)</h3>
+            </div>
+            <div class="turn-phase-body">
+                <div style="display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:8px;">
+                    <button class="psionic-tab active" data-tab="detection" onclick="PsionicUI.switchTab('detection')" style="padding:4px 12px;background:rgba(167,139,250,0.2);color:#a78bfa;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;">🔮 Detection</button>
+                    <button class="psionic-tab" data-tab="disciplines" onclick="PsionicUI.switchTab('disciplines')" style="padding:4px 12px;background:rgba(255,255,255,0.05);color:var(--text-secondary);border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;">📚 Disciplines</button>
+                    <button class="psionic-tab" data-tab="powercheck" onclick="PsionicUI.switchTab('powercheck')" style="padding:4px 12px;background:rgba(255,255,255,0.05);color:var(--text-secondary);border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;">⚡ Power Check</button>
+                    <button class="psionic-tab" data-tab="encounter" onclick="PsionicUI.switchTab('encounter')" style="padding:4px 12px;background:rgba(255,255,255,0.05);color:var(--text-secondary);border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;">🌀 Encounters</button>
+                </div>
+                <div class="psionic-panel" id="detectionPanel"></div>
+                <div class="psionic-panel hidden" id="disciplinesPanel"></div>
+                <div class="psionic-panel hidden" id="powerCheckPanel"></div>
+                <div class="psionic-panel hidden" id="encounterPanel"></div>
+            </div>
+            <div class="turn-phase-actions">
+                <button class="btn-small" id="psionicModalClose">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trade Modal -->
+    <div class="modal-overlay hidden" id="tradeModal">
+        <div class="modal-content" style="max-width:900px;">
+            <div class="turn-phase-header">
+                <h3><svg class="icon"><use href="#icon-diamond"></use></svg> Trade Market</h3>
+            </div>
+            <div class="turn-phase-body">
+                <div id="tradeMarketInfo" style="margin-bottom:12px; color:var(--text-secondary);"></div>
+                
+                <!-- Tabs for trade panels -->
+                <div style="display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:8px;">
+                    <button class="trade-tab active" data-tab="commodities" onclick="TradeUI.switchTab('commodities')" style="padding:4px 12px;background:rgba(6,182,212,0.2);color:#06b6d4;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;">📦 Commodities</button>
+                    <button class="trade-tab" data-tab="routes" onclick="TradeUI.switchTab('routes')" style="padding:4px 12px;background:rgba(255,255,255,0.05);color:var(--text-secondary);border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;">🗺️ Routes</button>
+                    <button class="trade-tab" data-tab="career" onclick="TradeUI.switchTab('career')" style="padding:4px 12px;background:rgba(255,255,255,0.05);color:var(--text-secondary);border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;">🎖️ Career</button>
+                    <button class="trade-tab" data-tab="exchange" onclick="TradeUI.switchTab('exchange')" style="padding:4px 12px;background:rgba(255,255,255,0.05);color:var(--text-secondary);border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;">💰 Exchange</button>
+                    <button class="trade-tab" data-tab="events" onclick="TradeUI.switchTab('events')" style="padding:4px 12px;background:rgba(255,255,255,0.05);color:var(--text-secondary);border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;">⚡ Events</button>
+                    <button class="trade-tab" data-tab="mission" onclick="TradeUI.switchTab('mission')" style="padding:4px 12px;background:rgba(255,255,255,0.05);color:var(--text-secondary);border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;">🚀 Missions</button>
+                </div>
+                
+                <!-- Commodities Panel -->
+                <div class="trade-panel" id="commoditiesPanel">
+                    <div id="tradeCommodityList" style="max-height:400px; overflow-y:auto;"></div>
+                </div>
+                
+                <!-- Trade Routes Panel -->
+                <div class="trade-panel hidden" id="routesPanel">
+                    <div id="tradeRoutesList" style="max-height:400px; overflow-y:auto;"></div>
+                </div>
+                
+                <!-- Career Bonuses Panel -->
+                <div class="trade-panel hidden" id="careerPanel">
+                    <div id="careerBonuses"></div>
+                </div>
+                
+                <!-- Exchange Info Panel -->
+                <div class="trade-panel hidden" id="exchangePanel">
+                    <div id="exchangeInfo"></div>
+                </div>
+                
+                <!-- Economic Events Panel -->
+                <div class="trade-panel hidden" id="eventsPanel">
+                    <div id="economicEvents"></div>
+                </div>
+                
+                <!-- Trade Mission Panel -->
+                <div class="trade-panel hidden" id="missionPanel">
+                    <div style="margin-bottom:12px;">
+                        <h4 style="margin:0 0 8px 0; color:var(--text-primary);">🚀 Execute Trade Mission</h4>
+                        <p style="font-size:0.8rem; color:var(--text-secondary); margin:0 0 12px 0;">
+                            Select a destination world, commodity, and quantity to execute a trade mission.
+                        </p>
+                        <div class="form-group">
+                            <label>Destination World ID</label>
+                            <input type="number" class="form-input" id="tradeMissionDest" min="1" value="2" style="width:200px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Commodity</label>
+                            <select class="form-input" id="tradeMissionCommodity" style="width:200px;"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Quantity</label>
+                            <input type="number" class="form-input" id="tradeMissionQty" min="1" value="1" style="width:200px;">
+                        </div>
+                        <div id="tradeMissionResult" style="margin-top:12px; padding:10px; background:rgba(255,255,255,0.05); border-radius:6px; display:none;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="turn-phase-actions">
+                <button class="btn-small primary" id="tradeMissionBtn" style="margin-right:8px;">🚀 Execute Mission</button>
+                <button class="btn-small" id="tradeModalClose">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script src="js/game-api.js?v=30"></script>
+    <script src="js/game-sse.js?v=30"></script>
+    <script src="js/game-ui-core.js?v=33"></script>
+    <script src="js/game-ui-galaxy-progress.js?v=32"></script>
+    <script src="js/character-ui.js?v=1"></script>
+    <script src="js/ship-design-ui.js?v=1"></script>
+    <script src="js/trade-ui.js?v=2"></script>
+    <script src="js/psionic-ui.js?v=1"></script>
+    <script src="js/game-ui-main.js?v=33"></script>
 
     <noscript>
         <style>

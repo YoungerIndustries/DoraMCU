@@ -54,6 +54,17 @@ public class EmpireNavy {
     // ---- Fleet Management ----
 
     /**
+     * Adds an existing fleet to this navy (used to sync fleets created by FleetManager).
+     *
+     * @param fleet the fleet to add
+     */
+    public void addFleet(Fleet fleet) {
+        if (fleet != null && !fleets.contains(fleet)) {
+            fleets.add(fleet);
+        }
+    }
+
+    /**
      * Creates a new fleet.
      *
      * @param name the name of the fleet

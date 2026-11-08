@@ -15,6 +15,7 @@ from openhands.tools.file_editor import FileEditorTool
 from openhands.tools.task_tracker import TaskTrackerTool
 
 from .prompts import get_system_prompt
+from .tools import CodeSearchTool, ProjectStructureTool
 
 
 class DoraAgent:
@@ -81,18 +82,24 @@ class DoraAgent:
         # Read-only modes: only file editor (read) and task tracker
         read_only_modes = {"chat", "advanced_chat", "run_verify"}
         
+        # Custom tools available in all modes
+        custom_tools = [
+            Tool(name=CodeSearchTool.name),
+            Tool(name=ProjectStructureTool.name),
+        ]
+        
         if self.mode in read_only_modes:
             return [
                 Tool(name=FileEditorTool.name),
                 Tool(name=TaskTrackerTool.name),
-            ]
+            ] + custom_tools
         else:
             # Full-featured modes: terminal, file editor, task tracker
             return [
                 Tool(name=TerminalTool.name),
                 Tool(name=FileEditorTool.name),
                 Tool(name=TaskTrackerTool.name),
-            ]
+            ] + custom_tools
     
     def run(self, message: str) -> Conversation:
         """

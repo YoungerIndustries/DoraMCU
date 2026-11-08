@@ -11,13 +11,13 @@ import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.yisy.modules.doramcu.DoraMcuApplication;
+import com.yisy.modules.doramcu.DoraMcuLauncher;
 
 /**
  * Integration tests for the full game session lifecycle.
  * Covers: create session, join session, get game state, advance turn, leave session.
  */
-@SpringBootTest(classes = DoraMcuApplication.class)
+@SpringBootTest(classes = DoraMcuLauncher.class)
 @ActiveProfiles("test")
 class GameSessionLifecycleIntegrationTest {
 

@@ -1,18 +1,11 @@
 package com.yisy.modules.doramcu.service;
 
-import com.yisy.modules.doramcu.hex.Game;
-import com.yisy.modules.doramcu.hex.Galaxy;
-import com.yisy.modules.doramcu.hex.SolarSystem;
-import com.yisy.modules.doramcu.hex.Player;
-import com.yisy.modules.doramcu.repository.GalaxyRepository;
-import com.yisy.modules.doramcu.repository.PlayerRepository;
-import com.yisy.modules.doramcu.repository.SolarSystemRepository;
+import com.yisy.modules.doramcu.hex.*;
+import com.yisy.modules.doramcu.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -42,7 +35,19 @@ public class GameInitializationService {
     private GalaxyRepository galaxyRepository;
 
     @Autowired
+    private SectorRepository sectorRepository;
+
+    @Autowired
+    private SubSectorRepository subSectorRepository;
+
+    @Autowired
     private SolarSystemRepository solarSystemRepository;
+
+    @Autowired
+    private StarRepository starRepository;
+
+    @Autowired
+    private PlanetRepository planetRepository;
 
     /**
      * Initializes a new Game instance from database entities.
@@ -67,7 +72,13 @@ public class GameInitializationService {
         int gamePlayerId = 1;
         for (com.yisy.modules.doramcu.model.Player dbPlayer : dbPlayers) {
             Player gamePlayer = new Player(gamePlayerId, dbPlayer.getEmpireName());
+            gamePlayer.setEmpireId(gamePlayerId);
             game.addPlayer(gamePlayer);
+
+            // Create and register an Empire for this player
+            Empire empire = new Empire(gamePlayerId, dbPlayer.getEmpireName() + " Empire", gamePlayerId);
+            game.registerEmpire(empire);
+
             gamePlayerId++;
         }
 
@@ -108,7 +119,13 @@ public class GameInitializationService {
             com.yisy.modules.doramcu.model.Player dbPlayer = playerRepository.findByEmail(email)
                     .orElseThrow(() -> new IllegalArgumentException("Player not found: " + email));
             Player gamePlayer = new Player(gamePlayerId, dbPlayer.getEmpireName());
+            gamePlayer.setEmpireId(gamePlayerId);
             game.addPlayer(gamePlayer);
+
+            // Create and register an Empire for this player
+            Empire empire = new Empire(gamePlayerId, dbPlayer.getEmpireName() + " Empire", gamePlayerId);
+            game.registerEmpire(empire);
+
             gamePlayerId++;
         }
 
@@ -178,8 +195,31 @@ public class GameInitializationService {
      * @param dbGalaxy the database galaxy entity
      * @return the in-memory galaxy
      */
-    private Galaxy convertToInMemoryGalaxy(com.yisy.modules.doramcu.model.Galaxy dbGalaxy) {
+    public Galaxy convertToInMemoryGalaxy(com.yisy.modules.doramcu.model.Galaxy dbGalaxy) {
         Galaxy galaxy = new Galaxy(dbGalaxy.getId().intValue(), dbGalaxy.getName());
+
+        // Load all sectors for this galaxy and apply stored names
+        List<com.yisy.modules.doramcu.model.Sector> dbSectors = sectorRepository.findByGalaxyId(dbGalaxy.getId());
+        for (com.yisy.modules.doramcu.model.Sector dbSector : dbSectors) {
+            Galaxy.Sector hexSector = galaxy.getSector(dbSector.getSectorRow(), dbSector.getSectorCol());
+            if (hexSector != null) {
+                hexSector.setName(dbSector.getName());
+                if (dbSector.getTradeType() != null) {
+                    hexSector.setTradeType(dbSector.getTradeType());
+                }
+
+                // Load all subsectors for this sector and apply stored names
+                List<com.yisy.modules.doramcu.model.SubSector> dbSubSectors =
+                        subSectorRepository.findBySectorId(dbSector.getId());
+                for (com.yisy.modules.doramcu.model.SubSector dbSubSector : dbSubSectors) {
+                    com.yisy.modules.doramcu.hex.SubSector hexSubSector =
+                            hexSector.getSubSector(dbSubSector.getSubSectorRow(), dbSubSector.getSubSectorCol());
+                    if (hexSubSector != null) {
+                        hexSubSector.setName(dbSubSector.getName());
+                    }
+                }
+            }
+        }
 
         // Load all solar systems for this galaxy
         List<com.yisy.modules.doramcu.model.SolarSystem> dbSystems =
@@ -200,10 +240,14 @@ public class GameInitializationService {
             int sectorCol = Integer.parseInt(parts[1]);
 
             for (com.yisy.modules.doramcu.model.SolarSystem dbSystem : entry.getValue()) {
-                // Create in-memory solar system with default range
-                SolarSystem inMemorySystem = new SolarSystem(
-                        dbSystem.getId().intValue()
-                );
+                int systemId = dbSystem.getId().intValue();
+                // Create in-memory solar system
+                SolarSystem inMemorySystem = new SolarSystem(systemId);
+
+                // Note: Celestial bodies are NOT loaded here to keep memory usage low.
+                // The buildSubSectorInfo() fallback path queries the database directly
+                // for system names, positions, and planet data when needed.
+                // loadCelestialBodies(systemId, inMemorySystem);
 
                 // Add to galaxy at the correct position
                 galaxy.addSystem(
@@ -216,5 +260,69 @@ public class GameInitializationService {
         }
 
         return galaxy;
+    }
+
+    /**
+     * Loads essential celestial bodies for a solar system from the database.
+     * Only loads stars and planets to keep memory usage manageable across 20k+ systems.
+     */
+    private void loadCelestialBodies(int systemId, SolarSystem inMemorySystem) {
+        Random random = new Random(systemId); // Deterministic positions per system
+
+        // Load stars
+        com.yisy.modules.doramcu.model.Star dbStar = starRepository.findBySolarSystemId((long) systemId);
+        if (dbStar != null) {
+            Star star = new Star(dbStar.getId().intValue());
+            star.setName(dbStar.getName());
+            if (dbStar.getStarSize() != null) {
+                try {
+                    star.setStarSize(Star.StarSize.valueOf(dbStar.getStarSize().name()));
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+            if (dbStar.getStarType() != null) {
+                try {
+                    star.setStarType(Star.StarType.valueOf(dbStar.getStarType().name()));
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+            SolarSystemEntity starEntity = new SolarSystemEntity(dbStar.getId().intValue() * 100);
+            starEntity.addStar(star, new Hex3D(0, 0, 0));
+            inMemorySystem.addSystem(starEntity, new Hex3D(0, 0, 0));
+        }
+
+        // Load planets
+        List<com.yisy.modules.doramcu.model.Planet> dbPlanets = planetRepository.findBySolarSystemId((long) systemId);
+        for (com.yisy.modules.doramcu.model.Planet dbPlanet : dbPlanets) {
+            Planet planet = new Planet(dbPlanet.getId().intValue());
+            planet.setName(dbPlanet.getName());
+            if (dbPlanet.getPlanetSize() != null) {
+                try {
+                    planet.setPlanetSize(PlanetSize.valueOf(dbPlanet.getPlanetSize().name()));
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+            if (dbPlanet.getMineralQuality() != null) {
+                try {
+                    planet.setMineralQuality(MineralQuality.valueOf(dbPlanet.getMineralQuality().name()));
+                } catch (IllegalArgumentException ignored) {
+                }
+            }
+            Hex3D planetPos = generateRandomHex3D(random);
+            SolarSystemEntity planetEntity = new SolarSystemEntity(dbPlanet.getId().intValue() * 100);
+            planetEntity.addPlanet(planet, planetPos);
+            inMemorySystem.addSystem(planetEntity, planetPos);
+        }
+    }
+
+    /**
+     * Generates a random Hex3D coordinate where x + y + z = 0.
+     * Used for positions within a SolarSystemEntity.
+     */
+    private Hex3D generateRandomHex3D(Random random) {
+        int x = random.nextInt(10) - 5;
+        int y = random.nextInt(10) - 5;
+        int z = -(x + y);
+        return new Hex3D(x, y, z);
     }
 }

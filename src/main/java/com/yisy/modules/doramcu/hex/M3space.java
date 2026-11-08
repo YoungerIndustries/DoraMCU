@@ -1,191 +1,159 @@
 package com.yisy.modules.doramcu.hex;
 
-import com.yisy.modules.doramcu.StateMachine;
-
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
- * Represents a single 3D hexagonal space cell (M3-space) in a three-dimensional hex grid.
+ * Represents a single cell in a 3D hull module grid.
  * <p>
- * Unlike {@link Hex3D}, which uses cubic coordinates constrained to a single plane (x + y + z = 0),
- * {@code M3space} uses true 3D cubic coordinates (x, y, z) without the planar constraint,
- * allowing cells to exist in a full three-dimensional volume.
- * <p>
- * Each M3space cell supports 26 face-, edge-, and corner-adjacent neighbors in 3D space,
- * and maintains its own state machine for lifecycle management between {@link HexState} values.
- *
- * <p><b>Coordinate system:</b></p>
- * <pre>
- *   The 3D hex grid uses offset coordinates where each cell is identified by (x, y, z).
- *   - Face neighbors: 6 directions (±1 on one axis, 0 on others)
- *   - Edge neighbors: 12 directions (±1 on two axes, 0 on one)
- *   - Corner neighbors: 8 directions (±1 on all three axes)
- * </pre>
+ * Each M3space cell has 3D coordinates (x, y, z) within a HullModule's 10×10×10 volume,
+ * a material type, and a state machine that tracks whether the cell is empty, occupied,
+ * damaged, or destroyed.
+ * </p>
  */
 public class M3space {
-
-    private static final StateMachine<HexState, HexEvent> TEMPLATE = createTemplateStateMachine();
 
     private final int x;
     private final int y;
     private final int z;
-    private final StateMachine<HexState, HexEvent> stateMachine;
-    private Object payload;
     private Material material;
+    private HexState state = HexState.EMPTY;
+    private ShipComponent component;
+    private Object payload;
     private int hitpoints;
 
     /**
-     * Creates an M3space cell at the given 3D coordinates with the specified material.
-     * Hitpoints are initialized to the material's default value.
+     * Creates a new M3space cell at origin with default Aluminum material.
+     */
+    public M3space() {
+        this(0, 0, 0, Material.Aluminum);
+    }
+
+    /**
+     * Creates a new M3space cell at the given coordinates with the specified material.
      *
-     * @param x the x coordinate
-     * @param y the y coordinate
-     * @param z the z coordinate
-     * @param material the material of this cell
+     * @param x the x coordinate (0-9)
+     * @param y the y coordinate (0-9)
+     * @param z the z coordinate (0-9)
+     * @param material the initial material of this cell
      */
     public M3space(int x, int y, int z, Material material) {
         this.x = x;
         this.y = y;
         this.z = z;
         this.material = material;
-        this.hitpoints = material.getValue();
-        this.stateMachine = new StateMachine<>(TEMPLATE);
+        this.hitpoints = material.ordinal();
     }
 
     /**
-     * Creates an M3space cell at the given 3D coordinates with default Aluminum material.
+     * Creates a new M3space cell at the given coordinates with default Aluminum material.
+     * Used for lookup in maps where material is not relevant.
      *
-     * @param x the x coordinate
-     * @param y the y coordinate
-     * @param z the z coordinate
+     * @param x the x coordinate (0-9)
+     * @param y the y coordinate (0-9)
+     * @param z the z coordinate (0-9)
      */
     public M3space(int x, int y, int z) {
         this(x, y, z, Material.Aluminum);
     }
 
-    /**
-     * Creates an M3space cell at the origin (0, 0, 0) with default Aluminum material.
-     */
-    public M3space() {
-        this(0, 0, 0, Material.Aluminum);
-    }
-
     // ---- Coordinate accessors ----
 
-    /** @return the x coordinate */
     public int getX() {
         return x;
     }
 
-    /** @return the y coordinate */
     public int getY() {
         return y;
     }
 
-    /** @return the z coordinate */
     public int getZ() {
         return z;
     }
 
-    // ---- Material and hitpoints ----
+    // ---- Material ----
 
-    /** @return the material of this cell */
     public Material getMaterial() {
         return material;
     }
 
-    /**
-     * Sets the material of this cell and resets hitpoints to the material's default value.
-     *
-     * @param material the new material
-     */
     public void setMaterial(Material material) {
         this.material = material;
-        this.hitpoints = material.getValue();
+        this.hitpoints = material.ordinal();
     }
 
-    /** @return the current hitpoints of this cell */
+    // ---- Hitpoints ----
+
+    /**
+     * Returns the current hitpoints of this cell.
+     */
     public int getHitpoints() {
         return hitpoints;
     }
 
-    /** @return the maximum hitpoints based on the material's value */
+    /**
+     * Returns the maximum hitpoints based on material.
+     */
     public int getMaxHitpoints() {
-        return material.getValue();
+        return material.ordinal();
     }
 
     /**
-     * Sets the current hitpoints (clamped between 0 and max).
-     *
-     * @param hitpoints the new hitpoints value
+     * Sets the hitpoints, clamped to [0, max].
      */
     public void setHitpoints(int hitpoints) {
         this.hitpoints = Math.max(0, Math.min(hitpoints, getMaxHitpoints()));
     }
 
     /**
-     * Deals damage to this cell, reducing hitpoints by the given amount.
-     * If hitpoints drop to 0 or below, the cell is automatically destroyed.
+     * Applies damage to this cell.
      *
-     * @param damage the amount of damage to deal
+     * @param damage the amount of damage
      * @return true if the cell was destroyed by this damage
      */
     public boolean damage(int damage) {
+        int oldHitpoints = this.hitpoints;
         this.hitpoints = Math.max(0, this.hitpoints - damage);
-        if (this.hitpoints <= 0) {
-            return destroy();
+        if (this.hitpoints == 0 && oldHitpoints > 0) {
+            this.state = HexState.DESTROYED;
+            this.component = null;
+            this.payload = null;
+            return true;
         }
         return false;
     }
 
-    /** @return true if the cell has any remaining hitpoints */
-    public boolean isDamaged() {
-        return hitpoints < getMaxHitpoints();
-    }
+    // ---- State machine ----
 
-    // ---- State machine operations ----
-
-    /** @return the current state of this M3space cell */
     public HexState getState() {
-        return stateMachine.getCurrentState();
+        return state;
     }
 
-    /** @return true if the cell is in the given state */
     public boolean isInState(HexState state) {
-        return stateMachine.isInState(state);
+        return this.state == state;
+    }
+
+    public boolean isDestroyed() {
+        return state == HexState.DESTROYED;
     }
 
     /**
-     * Attempts to process an event and transition to a new state.
-     *
-     * @param event the event to process
-     * @return true if a state transition occurred
+     * Returns true if the cell is damaged (hitpoints below max).
      */
-    public boolean sendEvent(HexEvent event) {
-        return stateMachine.sendEvent(event);
+    public boolean isDamaged() {
+        return hitpoints < getMaxHitpoints() && hitpoints >= 0;
     }
-
-    /** @return the list of events that can be processed in the current state */
-    public java.util.List<HexEvent> getPossibleEvents() {
-        return stateMachine.getPossibleEvents();
-    }
-
-    /** Resets this M3space cell to its initial state (EMPTY). */
-    public void reset() {
-        stateMachine.reset();
-        this.payload = null;
-    }
-
-    // ---- Convenience methods ----
 
     /**
-     * Place an entity on this M3space cell (EMPTY → OCCUPIED).
+     * Places a payload on this cell (EMPTY → OCCUPIED).
      *
-     * @param payload the entity to place
-     * @return true if placed successfully
+     * @param payload the payload to place
+     * @return true if placement succeeded
      */
-    public boolean place(Object payload) {
-        if (stateMachine.sendEvent(HexEvent.PLACE)) {
+    public boolean place(String payload) {
+        if (state == HexState.EMPTY) {
+            this.state = HexState.OCCUPIED;
             this.payload = payload;
             return true;
         }
@@ -193,166 +161,282 @@ public class M3space {
     }
 
     /**
-     * Remove the entity from this M3space cell (OCCUPIED → EMPTY).
+     * Places a component on this cell (EMPTY → OCCUPIED).
      *
-     * @return the removed payload, or null if not occupied
+     * @param component the component to place
+     */
+    public void place(ShipComponent component) {
+        if (state == HexState.EMPTY) {
+            this.state = HexState.OCCUPIED;
+            this.component = component;
+        }
+    }
+
+    /**
+     * Removes the payload from this cell (OCCUPIED → EMPTY).
+     *
+     * @return the removed payload, or null if empty
      */
     public Object remove() {
-        if (stateMachine.sendEvent(HexEvent.REMOVE)) {
+        if (state == HexState.OCCUPIED || state == HexState.SELECTED) {
             Object p = this.payload;
+            this.state = HexState.EMPTY;
             this.payload = null;
+            this.component = null;
             return p;
         }
         return null;
     }
 
     /**
-     * Block this cell so it cannot be occupied (EMPTY → BLOCKED).
+     * Blocks this cell (EMPTY → BLOCKED).
      *
-     * @return true if blocked successfully
+     * @return true if blocking succeeded
      */
     public boolean block() {
-        return stateMachine.sendEvent(HexEvent.BLOCK);
+        if (state == HexState.EMPTY) {
+            this.state = HexState.BLOCKED;
+            return true;
+        }
+        return false;
     }
 
     /**
-     * Unblock this cell (BLOCKED → EMPTY).
+     * Unblocks this cell (BLOCKED → EMPTY).
      *
-     * @return true if unblocked successfully
+     * @return true if unblocking succeeded
      */
     public boolean unblock() {
-        return stateMachine.sendEvent(HexEvent.UNBLOCK);
+        if (state == HexState.BLOCKED) {
+            this.state = HexState.EMPTY;
+            return true;
+        }
+        return false;
     }
 
     /**
-     * Select this cell (OCCUPIED → SELECTED).
+     * Selects this cell (OCCUPIED → SELECTED).
      *
-     * @return true if selected successfully
+     * @return true if selection succeeded
      */
     public boolean select() {
-        return stateMachine.sendEvent(HexEvent.SELECT);
+        if (state == HexState.OCCUPIED) {
+            this.state = HexState.SELECTED;
+            return true;
+        }
+        return false;
     }
 
     /**
-     * Deselect this cell (SELECTED → OCCUPIED).
+     * Deselects this cell (SELECTED → OCCUPIED).
      *
-     * @return true if deselected successfully
+     * @return true if deselection succeeded
      */
     public boolean deselect() {
-        return stateMachine.sendEvent(HexEvent.DESELECT);
+        if (state == HexState.SELECTED) {
+            this.state = HexState.OCCUPIED;
+            return true;
+        }
+        return false;
     }
 
-    /** @return the payload stored on this cell, or null if empty */
+    /**
+     * Destroys this cell (any state → DESTROYED).
+     *
+     * @return true if destruction succeeded (cell was not already destroyed)
+     */
+    public boolean destroy() {
+        if (state == HexState.DESTROYED) {
+            return false;
+        }
+        this.state = HexState.DESTROYED;
+        this.component = null;
+        this.payload = null;
+        this.hitpoints = 0;
+        return true;
+    }
+
+    /**
+     * Repairs a destroyed cell (DESTROYED → EMPTY).
+     *
+     * @return true if the cell was repaired
+     */
+    public boolean repair() {
+        if (state == HexState.DESTROYED) {
+            this.state = HexState.EMPTY;
+            this.component = null;
+            this.payload = null;
+            this.hitpoints = getMaxHitpoints();
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Resets this cell to EMPTY state, clearing payload and component.
+     */
+    public void reset() {
+        this.state = HexState.EMPTY;
+        this.component = null;
+        this.payload = null;
+        this.hitpoints = getMaxHitpoints();
+    }
+
+    /**
+     * Sends a raw event to the state machine.
+     *
+     * @param event the event to process
+     * @return true if the event caused a state transition
+     */
+    public boolean sendEvent(HexEvent event) {
+        switch (event) {
+            case PLACE:
+                return place("");
+            case REMOVE:
+                return remove() != null;
+            case SELECT:
+                return select();
+            case DESELECT:
+                return deselect();
+            case BLOCK:
+                return block();
+            case UNBLOCK:
+                return unblock();
+            case DESTROY:
+                return destroy();
+            case REPAIR:
+                return repair();
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Returns the list of events valid in the current state.
+     */
+    public List<HexEvent> getPossibleEvents() {
+        List<HexEvent> events = new ArrayList<>();
+        switch (state) {
+            case EMPTY:
+                events.add(HexEvent.PLACE);
+                events.add(HexEvent.BLOCK);
+                events.add(HexEvent.DESTROY);
+                break;
+            case OCCUPIED:
+                events.add(HexEvent.REMOVE);
+                events.add(HexEvent.SELECT);
+                events.add(HexEvent.DESTROY);
+                break;
+            case SELECTED:
+                events.add(HexEvent.DESELECT);
+                events.add(HexEvent.DESTROY);
+                break;
+            case BLOCKED:
+                events.add(HexEvent.UNBLOCK);
+                events.add(HexEvent.DESTROY);
+                break;
+            case DESTROYED:
+                events.add(HexEvent.REPAIR);
+                break;
+        }
+        return events;
+    }
+
+    // ---- Component / Payload ----
+
+    public ShipComponent getComponent() {
+        return component;
+    }
+
+    /**
+     * Returns the payload stored in this cell.
+     */
     public Object getPayload() {
         return payload;
     }
 
-    // ---- 3D Hex arithmetic ----
+    // ---- Neighbor methods ----
 
     /**
-     * Returns the neighbor M3space in the given 3D direction.
-     *
-     * @param dx the x offset
-     * @param dy the y offset
-     * @param dz the z offset
-     * @return a new M3space at the neighbor position
+     * Returns a new M3space at the given offset from this cell.
      */
     public M3space neighbor(int dx, int dy, int dz) {
         return new M3space(x + dx, y + dy, z + dz);
     }
 
     /**
-     * Returns all 6 face-adjacent neighboring cells.
-     *
-     * @return list of 6 face neighbors
+     * Returns the 6 face-adjacent neighbors (±1 in one axis).
      */
-    public java.util.List<M3space> faceNeighbors() {
-        java.util.List<M3space> result = new java.util.ArrayList<>(6);
-        int[] deltas = {1, -1, 0};
-        for (int i = 0; i < 3; i++) {
-            for (int d : deltas) {
-                if (d == 0) continue;
-                int nx = x + (i == 0 ? d : 0);
-                int ny = y + (i == 1 ? d : 0);
-                int nz = z + (i == 2 ? d : 0);
-                result.add(new M3space(nx, ny, nz));
-            }
+    public List<M3space> faceNeighbors() {
+        int[][] dirs = {{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
+        List<M3space> neighbors = new ArrayList<>(6);
+        for (int[] d : dirs) {
+            neighbors.add(new M3space(x + d[0], y + d[1], z + d[2]));
         }
-        return result;
+        return neighbors;
     }
 
     /**
-     * Returns all 12 edge-adjacent neighboring cells.
-     *
-     * @return list of 12 edge neighbors
+     * Returns the 12 edge-adjacent neighbors (±1 in two axes).
      */
-    public java.util.List<M3space> edgeNeighbors() {
-        java.util.List<M3space> result = new java.util.ArrayList<>(12);
-        int[] axes = {0, 1, 2};
-        for (int i = 0; i < 3; i++) {
-            for (int j = i + 1; j < 3; j++) {
-                for (int di : new int[]{1, -1}) {
-                    for (int dj : new int[]{1, -1}) {
-                        int nx = x + (i == 0 ? di : j == 0 ? dj : 0);
-                        int ny = y + (i == 1 ? di : j == 1 ? dj : 0);
-                        int nz = z + (i == 2 ? di : j == 2 ? dj : 0);
-                        result.add(new M3space(nx, ny, nz));
-                    }
+    public List<M3space> edgeNeighbors() {
+        int[][] dirs = {
+            {1,1,0},{1,-1,0},{-1,1,0},{-1,-1,0},
+            {1,0,1},{1,0,-1},{-1,0,1},{-1,0,-1},
+            {0,1,1},{0,1,-1},{0,-1,1},{0,-1,-1}
+        };
+        List<M3space> neighbors = new ArrayList<>(12);
+        for (int[] d : dirs) {
+            neighbors.add(new M3space(x + d[0], y + d[1], z + d[2]));
+        }
+        return neighbors;
+    }
+
+    /**
+     * Returns the 8 corner-adjacent neighbors (±1 in all three axes).
+     */
+    public List<M3space> cornerNeighbors() {
+        int[][] dirs = {
+            {1,1,1},{1,1,-1},{1,-1,1},{1,-1,-1},
+            {-1,1,1},{-1,1,-1},{-1,-1,1},{-1,-1,-1}
+        };
+        List<M3space> neighbors = new ArrayList<>(8);
+        for (int[] d : dirs) {
+            neighbors.add(new M3space(x + d[0], y + d[1], z + d[2]));
+        }
+        return neighbors;
+    }
+
+    /**
+     * Returns all 26 neighbors (face + edge + corner).
+     */
+    public List<M3space> allNeighbors() {
+        List<M3space> neighbors = new ArrayList<>(26);
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dy = -1; dy <= 1; dy++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    if (dx == 0 && dy == 0 && dz == 0) continue;
+                    neighbors.add(new M3space(x + dx, y + dy, z + dz));
                 }
             }
         }
-        return result;
+        return neighbors;
     }
 
-    /**
-     * Returns all 8 corner-adjacent neighboring cells.
-     *
-     * @return list of 8 corner neighbors
-     */
-    public java.util.List<M3space> cornerNeighbors() {
-        java.util.List<M3space> result = new java.util.ArrayList<>(8);
-        for (int dx : new int[]{1, -1}) {
-            for (int dy : new int[]{1, -1}) {
-                for (int dz : new int[]{1, -1}) {
-                    result.add(new M3space(x + dx, y + dy, z + dz));
-                }
-            }
-        }
-        return result;
-    }
+    // ---- Distance methods ----
 
     /**
-     * Returns all 26 neighboring cells (face, edge, and corner).
-     *
-     * @return list of all 26 neighbors
-     */
-    public java.util.List<M3space> allNeighbors() {
-        java.util.List<M3space> result = new java.util.ArrayList<>(26);
-        result.addAll(faceNeighbors());
-        result.addAll(edgeNeighbors());
-        result.addAll(cornerNeighbors());
-        return result;
-    }
-
-    /**
-     * Computes the Manhattan distance between this cell and another.
-     *
-     * @param other the other cell
-     * @return the Manhattan distance
+     * Returns the Manhattan distance to another cell.
      */
     public int distance(M3space other) {
-        return Math.abs(this.x - other.x) + Math.abs(this.y - other.y) + Math.abs(this.z - other.z);
+        return Math.abs(x - other.x) + Math.abs(y - other.y) + Math.abs(z - other.z);
     }
 
     /**
-     * Computes the Chebyshev distance (max of absolute differences) between this cell and another.
-     *
-     * @param other the other cell
-     * @return the Chebyshev distance
+     * Returns the Chebyshev distance to another cell.
      */
     public int chebyshevDistance(M3space other) {
-        return Math.max(Math.abs(this.x - other.x),
-                Math.max(Math.abs(this.y - other.y), Math.abs(this.z - other.z)));
+        return Math.max(Math.abs(x - other.x), Math.max(Math.abs(y - other.y), Math.abs(z - other.z)));
     }
 
     // ---- Object contract ----
@@ -372,70 +456,6 @@ public class M3space {
 
     @Override
     public String toString() {
-        return String.format("M3space(%d, %d, %d)[%s]%s(%d/%d)", x, y, z, stateMachine.getCurrentState(), material, hitpoints, getMaxHitpoints());
-    }
-
-    // ---- State machine factory ----
-
-    /**
-     * Destroys this M3space cell, transitioning it to the DESTROYED state.
-     * A destroyed cell can be destroyed from any state (EMPTY, OCCUPIED, BLOCKED, SELECTED).
-     * Once destroyed, the cell remains destroyed — there is no recovery transition.
-     *
-     * @return true if the cell was successfully destroyed
-     */
-    public boolean destroy() {
-        if (stateMachine.sendEvent(HexEvent.DESTROY)) {
-            this.payload = null;
-            return true;
-        }
-        return false;
-    }
-
-    /** @return true if this cell is in the DESTROYED state */
-    public boolean isDestroyed() {
-        return stateMachine.isInState(HexState.DESTROYED);
-    }
-
-    /**
-     * Repairs this M3space cell, transitioning it from DESTROYED back to EMPTY.
-     * A repaired cell becomes empty and available for use again.
-     *
-     * @return true if the cell was successfully repaired
-     */
-    public boolean repair() {
-        return stateMachine.sendEvent(HexEvent.REPAIR);
-    }
-
-    // ---- State machine factory ----
-
-    private static StateMachine<HexState, HexEvent> createTemplateStateMachine() {
-        return StateMachine.<HexState, HexEvent>builder()
-                .initialState(HexState.EMPTY)
-
-                // EMPTY transitions
-                .onTransition(HexState.EMPTY, HexEvent.PLACE, HexState.OCCUPIED)
-                .onTransition(HexState.EMPTY, HexEvent.BLOCK, HexState.BLOCKED)
-
-                // OCCUPIED transitions
-                .onTransition(HexState.OCCUPIED, HexEvent.REMOVE, HexState.EMPTY)
-                .onTransition(HexState.OCCUPIED, HexEvent.SELECT, HexState.SELECTED)
-
-                // SELECTED transitions
-                .onTransition(HexState.SELECTED, HexEvent.DESELECT, HexState.OCCUPIED)
-
-                // BLOCKED transitions
-                .onTransition(HexState.BLOCKED, HexEvent.UNBLOCK, HexState.EMPTY)
-
-                // Destroy transitions — any state can be destroyed
-                .onTransition(HexState.EMPTY, HexEvent.DESTROY, HexState.DESTROYED)
-                .onTransition(HexState.OCCUPIED, HexEvent.DESTROY, HexState.DESTROYED)
-                .onTransition(HexState.BLOCKED, HexEvent.DESTROY, HexState.DESTROYED)
-                .onTransition(HexState.SELECTED, HexEvent.DESTROY, HexState.DESTROYED)
-
-                // Repair transition — destroyed cell restored to empty
-                .onTransition(HexState.DESTROYED, HexEvent.REPAIR, HexState.EMPTY)
-
-                .build();
+        return String.format("M3space(%d,%d,%d)[%s,%s]", x, y, z, material, state);
     }
 }

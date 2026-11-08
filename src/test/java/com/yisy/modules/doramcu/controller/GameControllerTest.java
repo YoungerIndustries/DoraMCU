@@ -51,10 +51,10 @@ class GameControllerTest {
 
         when(authentication.getName()).thenReturn("1");
         when(playerIdExtractor.extract(authentication)).thenReturn(1L);
-        when(gameSessionService.getGameState(eq(1L), eq("sess-1")))
+        when(gameSessionService.getGameState(eq(1L), eq("sess-1"), eq(false)))
                 .thenReturn(expected);
 
-        ResponseEntity<GameStateResponse> response = controller.getGameState("sess-1", authentication);
+        ResponseEntity<GameStateResponse> response = controller.getGameState("sess-1", false, authentication);
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(expected, response.getBody());
@@ -65,10 +65,10 @@ class GameControllerTest {
     void getGameState_shouldThrow404() {
         when(authentication.getName()).thenReturn("1");
         when(playerIdExtractor.extract(authentication)).thenReturn(1L);
-        when(gameSessionService.getGameState(eq(1L), eq("nonexistent")))
+        when(gameSessionService.getGameState(eq(1L), eq("nonexistent"), eq(false)))
                 .thenThrow(new NoSuchElementException("Session not found"));
 
-        assertThrows(NoSuchElementException.class, () -> controller.getGameState("nonexistent", authentication));
+        assertThrows(NoSuchElementException.class, () -> controller.getGameState("nonexistent", false, authentication));
     }
 
     // ---- Move Fleet ----

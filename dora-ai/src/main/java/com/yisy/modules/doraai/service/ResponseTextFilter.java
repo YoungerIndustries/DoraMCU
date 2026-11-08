@@ -53,13 +53,28 @@ public class ResponseTextFilter {
 
     /**
      * Adds space between lowercase-uppercase transitions (camelCase to camel Case).
-     * Only applies when there's no existing space, to avoid double-spacing.
+     * Only applies to natural language text, not code blocks.
      */
     private static String addSpaceBetweenWords(String text) {
-        // Add space between lowercase and uppercase letters (e.g., "helloWorld" -> "hello World")
-        // Only if not already separated by a space
-        text = text.replaceAll("([a-z])([A-Z])", "$1 $2");
-        return text;
+        // Split by code blocks to preserve them
+        StringBuilder result = new StringBuilder();
+        String[] parts = text.split("(```)");
+        
+        for (int i = 0; i < parts.length; i++) {
+            if (i % 2 == 0) {
+                // Even indices are outside code blocks — apply camelCase splitting
+                result.append(parts[i].replaceAll("([a-z])([A-Z])", "$1 $2"));
+            } else {
+                // Odd indices are inside code blocks — preserve as-is
+                result.append(parts[i]);
+            }
+            // Re-add the ``` delimiter if not last part
+            if (i < parts.length - 1) {
+                result.append("```");
+            }
+        }
+        
+        return result.toString();
     }
 
     /**

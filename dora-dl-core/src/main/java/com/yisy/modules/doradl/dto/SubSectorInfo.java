@@ -2,6 +2,7 @@ package com.yisy.modules.doradl.dto;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * DTO representing a subsector in the galaxy.
@@ -17,7 +18,13 @@ public class SubSectorInfo {
     private int subCol;
     private boolean generated;
     private int systemCount;
+    /** Traveller-style trade classification of the parent sector (e.g., "Agricultural", "Industrial"). */
+    private String tradeType;
     private List<Map<String, Object>> systems;
+    /** Set of empire IDs that own planets in this subsector. Empty if no empire owns anything here. */
+    private Set<Integer> ownerEmpireIds;
+    /** True if any empire other than the requesting player owns planets in this subsector. */
+    private boolean contested;
 
     public SubSectorInfo() {
     }
@@ -105,5 +112,29 @@ public class SubSectorInfo {
 
     public void setSystems(List<Map<String, Object>> systems) {
         this.systems = systems;
+    }
+
+    public Set<Integer> getOwnerEmpireIds() {
+        return ownerEmpireIds;
+    }
+
+    public void setOwnerEmpireIds(Set<Integer> ownerEmpireIds) {
+        this.ownerEmpireIds = ownerEmpireIds;
+    }
+
+    public boolean isContested() {
+        return contested;
+    }
+
+    public void setContested(boolean contested) {
+        this.contested = contested;
+    }
+
+    public String getTradeType() {
+        return tradeType;
+    }
+
+    public void setTradeType(String tradeType) {
+        this.tradeType = tradeType;
     }
 }

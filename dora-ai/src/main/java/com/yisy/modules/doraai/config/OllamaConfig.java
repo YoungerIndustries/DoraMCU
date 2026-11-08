@@ -32,6 +32,9 @@ public class OllamaConfig {
     /** Read timeout in milliseconds (default: 120000) */
     private int readTimeoutMs = 120000;
 
+    /** Whisper model name for speech-to-text (default: whisper) */
+    private String whisperModel = "whisper";
+
     public String getBaseUrl() {
         return baseUrl;
     }
@@ -78,5 +81,13 @@ public class OllamaConfig {
 
     public void setReadTimeoutMs(int readTimeoutMs) {
         this.readTimeoutMs = readTimeoutMs;
+    }
+
+    public String getWhisperModel() {
+        return whisperModel;
+    }
+
+    public void setWhisperModel(String whisperModel) {
+        this.whisperModel = whisperModel;
     }
 }

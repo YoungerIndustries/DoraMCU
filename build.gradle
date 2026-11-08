@@ -14,7 +14,7 @@ bootRun {
 }
 
 group = 'com.YISY.modules'
-version = '0.1.3'
+version = '0.1.7'
 description = 'DoraMCU'
 
 java {
@@ -59,12 +59,20 @@ dependencies {
     testRuntimeOnly 'com.h2database:h2'
 }
 
+// JVM memory settings — standardized across environments.
+// Override via JVM_OPTS environment variable where supported.
+// When dl.rest-client.enabled=true, DL4J is not loaded and JavaCPP args are not needed.
+def jvmBaseArgs = ['-XX:+UseG1GC', '-XX:MaxGCPauseMillis=200']
+
+// DL4J-specific JVM args — only needed when running local DL4J (dl.rest-client.enabled=false)
+def dl4jArgs = ['-Dorg.bytedeco.javacpp.maxbytes=2G', '-Dorg.bytedeco.javacpp.maxphysicalbytes=4G', '-Dorg.bytedeco.javacpp.alwaysscan=true']
+
 tasks.named('test') {
     useJUnitPlatform()
-    maxHeapSize = '6G'
-    jvmArgs '-XX:+UseG1GC', '-XX:MaxGCPauseMillis=200', '-Dorg.bytedeco.javacpp.maxbytes=2G', '-Dorg.bytedeco.javacpp.maxphysicalbytes=4G'
+    maxHeapSize = '4G'
+    jvmArgs jvmBaseArgs + dl4jArgs
 }
 
 tasks.named('bootRun') {
-    jvmArgs '-Xmx8G', '-XX:+UseG1GC', '-XX:MaxGCPauseMillis=200', '-Dorg.bytedeco.javacpp.maxbytes=4G', '-Dorg.bytedeco.javacpp.maxphysicalbytes=8G'
+    jvmArgs jvmBaseArgs + ['-Xmx4G'] + dl4jArgs
 }

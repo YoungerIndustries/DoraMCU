@@ -49,14 +49,6 @@ public class Moon {
         HUGE
     }
 
-    public enum StrategicResource {
-        ELERIUM,
-        ANTI_MATTER,
-        THULIUM,
-        DURANTIUM,
-        PROMETHION
-    }
-
     public Moon() {
     }
 

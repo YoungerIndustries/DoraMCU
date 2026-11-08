@@ -901,6 +901,17 @@ public class SolarSystemEntity {
         return spaceMap.contains(x, y);
     }
 
+    // ---- Entry access ----
+
+    /**
+     * Returns all bodies in this solar system with their 3D positions.
+     *
+     * @return unmodifiable collection of SystemBody entries (body + position + type)
+     */
+    public java.util.Collection<SystemBody> getAllEntries() {
+        return java.util.Collections.unmodifiableCollection(positionIndex.values());
+    }
+
     // ---- Object contract ----
 
     @Override

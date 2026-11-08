@@ -24,6 +24,7 @@ public class PlanetGeometry {
     private final int moonDistance;
     private final int moonRadius;
     private final Hex3DMap map;
+    private boolean geometryGenerated = false;  // Lazy generation flag
 
     /**
      * Creates planet geometry with default radius of 10.
@@ -67,16 +68,27 @@ public class PlanetGeometry {
         this.moonDistance = moonDistance;
         this.moonRadius = moonRadius;
         this.map = new Hex3DMap();
-        generate();
+        // Geometry is generated lazily on first access
     }
 
     // ---- Generation ----
 
     private void generate() {
+        if (geometryGenerated) return;
         Hex3D center = new Hex3D(0, 0, 0);
         int totalRadius = radius + atmosphereThickness;
         map.generateRange(center, totalRadius);
         generateMoon();
+        geometryGenerated = true;
+    }
+
+    /**
+     * Forces generation of geometry if not already generated.
+     */
+    public void ensureGeometryGenerated() {
+        if (!geometryGenerated) {
+            generate();
+        }
     }
 
     private void generateMoon() {
@@ -114,43 +126,59 @@ public class PlanetGeometry {
     }
 
     public int size() {
+        ensureGeometryGenerated();
         return map.size();
     }
 
     /**
-     * @return the underlying 3D hex map
+     * @return true if geometry has been generated
+     */
+    public boolean isGeometryGenerated() {
+        return geometryGenerated;
+    }
+
+    /**
+     * @return the underlying 3D hex map (triggers lazy generation if needed)
      */
     public Hex3DMap getMap() {
+        ensureGeometryGenerated();
         return map;
     }
 
     // ---- Hex operations ----
 
     public Hex3D get(int x, int y) {
+        ensureGeometryGenerated();
         return map.get(x, y);
     }
 
     public Hex3D get(Hex3D hex) {
+        ensureGeometryGenerated();
         return map.get(hex);
     }
 
     public boolean contains(int x, int y) {
+        ensureGeometryGenerated();
         return map.contains(x, y);
     }
 
     public boolean contains(Hex3D hex) {
+        ensureGeometryGenerated();
         return map.get(hex) != null;
     }
 
     public Collection<Hex3D> getAll() {
+        ensureGeometryGenerated();
         return map.getAll();
     }
 
     public List<Hex3D> findByState(HexState state) {
+        ensureGeometryGenerated();
         return map.findByState(state);
     }
 
     public List<Hex3D> getNeighbors(Hex3D hex) {
+        ensureGeometryGenerated();
         return map.getNeighbors(hex);
     }
 

@@ -29,7 +29,35 @@ public enum WeaponType {
      * Requires Thulium strategic resource.
      * Base damage: 12, range: medium.
      */
-    MASS_DRIVER(StrategicResource.THULIUM, 12, 2);
+    MASS_DRIVER(StrategicResource.THULIUM, 12, 2),
+
+    /**
+     * Pulsion weapons — high-energy particle beams.
+     * Requires Elerium strategic resource.
+     * Base damage: 18, range: short. High damage but short range.
+     */
+    PULSION(StrategicResource.ELERIUM, 18, 1),
+
+    /**
+     * Photon weapons — focused light beams.
+     * Requires Elerium strategic resource.
+     * Base damage: 8, range: long. Low damage but long range.
+     */
+    PHOTON(StrategicResource.ELERIUM, 8, 3),
+
+    /**
+     * Torpedo weapons — heavy warhead projectiles.
+     * Requires Anti-Matter strategic resource.
+     * Base damage: 25, range: long. Highest damage but slow.
+     */
+    TORPEDO(StrategicResource.ANTI_MATTER, 25, 3),
+
+    /**
+     * Countermeasure weapons — defensive electronic warfare.
+     * Requires Thulium strategic resource.
+     * Base damage: 5, range: medium. Reduces incoming missile damage.
+     */
+    COUNTERMEASURE(StrategicResource.THULIUM, 5, 2);
 
     private final StrategicResource requiredResource;
     private final int baseDamage;

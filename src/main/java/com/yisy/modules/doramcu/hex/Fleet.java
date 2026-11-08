@@ -718,7 +718,7 @@ public class Fleet {
      * @param damage the total damage to distribute
      * @return the actual damage dealt
      */
-    int distributeDamage(int damage) {
+    public int distributeDamage(int damage) {
         if (damage <= 0 || isDestroyed()) {
             return 0;
         }

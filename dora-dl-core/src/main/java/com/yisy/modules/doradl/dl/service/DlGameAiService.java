@@ -3,39 +3,52 @@ package com.yisy.modules.doradl.dl.service;
 import com.yisy.modules.doradl.config.DlConfig;
 import com.yisy.modules.doradl.dto.GameStateResponse;
 import com.yisy.modules.doradl.dto.PlayerSummary;
-import com.yisy.modules.doradl.dl.network.GameStateFeatureExtractor;
+import com.yisy.modules.doradl.dl.network.FeatureExtractor;
+import com.yisy.modules.doradl.dl.network.FeatureExtractorRegistry;
 import com.yisy.modules.doradl.model.ActionReward;
 import com.yisy.modules.doradl.model.GameStateFeatures;
 import com.yisy.modules.doradl.network.StrategyNetwork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
 /**
  * Combines neural network predictions with heuristic scores for game AI decisions.
+ * <p>
+ * This is the local DL4J-based implementation. When dl.rest-client.enabled=true,
+ * the REST-backed implementation (DlGameAiServiceRest) is used instead.
+ * </p>
  */
 @Service
+@ConditionalOnProperty(name = "dl.rest-client.enabled", havingValue = "false", matchIfMissing = true)
 public class DlGameAiService {
 
     private static final Logger log = LoggerFactory.getLogger(DlGameAiService.class);
 
     private final StrategyNetwork network;
-    private final GameStateFeatureExtractor extractor;
+    private final FeatureExtractorRegistry extractorRegistry;
     private final DlConfig config;
 
-    public DlGameAiService(StrategyNetwork network, GameStateFeatureExtractor extractor, DlConfig config) {
+    public DlGameAiService(StrategyNetwork network, FeatureExtractorRegistry extractorRegistry, DlConfig config) {
         this.network = network;
-        this.extractor = extractor;
+        this.extractorRegistry = extractorRegistry;
         this.config = config;
     }
 
     public Map<String, Object> predictAction(GameStateResponse gameState, Long playerId) {
+        return predictAction(gameState, playerId, FeatureExtractorRegistry.SupportedGameType.DORAMCU_4X);
+    }
+
+    public Map<String, Object> predictAction(GameStateResponse gameState, Long playerId,
+                                              FeatureExtractorRegistry.SupportedGameType gameType) {
         if (!network.isInitialized()) {
             network.initialize();
         }
 
+        FeatureExtractor extractor = extractorRegistry.getExtractor(gameType);
         GameStateFeatures features = extractor.extract(gameState, playerId);
         double[] nnProbabilities = network.predict(features);
         int nnAction = network.predictAction(features);
@@ -103,32 +116,55 @@ public class DlGameAiService {
         int planetCount = player.getPlanetCount();
 
         // Strategic actions
-        if (minerals >= 100 && energy >= 50) scores[ActionReward.Action.BUILD_SHIP.getIndex()] = 0.7;
-        if (minerals >= 200 && energy >= 100) scores[ActionReward.Action.BUILD_STATION.getIndex()] = 0.5;
-        if (planetCount < 5 && food >= 30) scores[ActionReward.Action.EXPAND_COLONY.getIndex()] = 0.6;
-        if (research >= 50) scores[ActionReward.Action.RESEARCH_TECH.getIndex()] = 0.5;
+        if (minerals >= config.getHeuristicMineralsBuildShip() && energy >= config.getHeuristicEnergyBuildShip()) {
+            scores[ActionReward.Action.BUILD_SHIP.getIndex()] = 0.7;
+        }
+        if (minerals >= config.getHeuristicMineralsBuildStation() && energy >= config.getHeuristicEnergyBuildStation()) {
+            scores[ActionReward.Action.BUILD_STATION.getIndex()] = 0.5;
+        }
+        if (planetCount < config.getHeuristicMaxPlanetsForExpansion() && food >= config.getHeuristicFoodExpandColony()) {
+            scores[ActionReward.Action.EXPAND_COLONY.getIndex()] = 0.6;
+        }
+        if (research >= config.getHeuristicResearchTech()) {
+            scores[ActionReward.Action.RESEARCH_TECH.getIndex()] = 0.5;
+        }
         scores[ActionReward.Action.DIPLOMATIC_STANCE.getIndex()] = 0.2;
 
         // Tactical actions
         if (fleetCount > 0) scores[ActionReward.Action.MOVE_FLEET.getIndex()] = 0.5;
-        if (fleetCount >= 3) scores[ActionReward.Action.ENGAGE_COMBAT.getIndex()] = 0.6;
-        if (fleetCount > 0 && minerals < 30) scores[ActionReward.Action.RETREAT.getIndex()] = 0.7;
-        if (fleetCount >= 2) scores[ActionReward.Action.FLANK_ENEMY.getIndex()] = 0.3;
-        if (fleetCount >= 2) scores[ActionReward.Action.AMBUSH.getIndex()] = 0.2;
+        if (fleetCount >= config.getHeuristicFleetEngageCombat()) {
+            scores[ActionReward.Action.ENGAGE_COMBAT.getIndex()] = 0.6;
+        }
+        if (fleetCount > 0 && minerals < config.getHeuristicMineralsRetreat()) {
+            scores[ActionReward.Action.RETREAT.getIndex()] = 0.7;
+        }
+        if (fleetCount >= config.getHeuristicFleetFlankAmbush()) {
+            scores[ActionReward.Action.FLANK_ENEMY.getIndex()] = 0.3;
+        }
+        if (fleetCount >= config.getHeuristicFleetFlankAmbush()) {
+            scores[ActionReward.Action.AMBUSH.getIndex()] = 0.2;
+        }
 
         // Economic actions
-        if (minerals < 100) scores[ActionReward.Action.OPTIMIZE_MINING.getIndex()] = 0.6;
+        if (minerals < config.getHeuristicMineralsOptimizeMining()) {
+            scores[ActionReward.Action.OPTIMIZE_MINING.getIndex()] = 0.6;
+        }
         scores[ActionReward.Action.OPTIMIZE_TRADE.getIndex()] = 0.3;
         if (fleetCount > 0) scores[ActionReward.Action.REPAIR_FLEET.getIndex()] = 0.3;
         scores[ActionReward.Action.UPGRADE_STATION.getIndex()] = 0.2;
 
         // Defensive actions
-        if (minerals >= 50) scores[ActionReward.Action.FORTIFY_PLANET.getIndex()] = 0.4;
+        if (minerals >= config.getHeuristicMineralsFortify()) {
+            scores[ActionReward.Action.FORTIFY_PLANET.getIndex()] = 0.4;
+        }
         if (fleetCount > 0) scores[ActionReward.Action.SCOUT_AREA.getIndex()] = 0.4;
 
         // Wait action
-        if (minerals < 50 || energy < 25) scores[waitIndex] = 0.8;
-        else scores[waitIndex] = 0.1;
+        if (minerals < config.getHeuristicMineralsWait() || energy < config.getHeuristicEnergyWait()) {
+            scores[waitIndex] = 0.8;
+        } else {
+            scores[waitIndex] = 0.1;
+        }
 
         // Normalize
         double sum = 0;

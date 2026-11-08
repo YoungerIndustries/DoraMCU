@@ -3,6 +3,11 @@
 -- This migration adds support for Army, Navy, Facilities components,
 -- celestial bodies (moons, asteroids, gas giants, nebulas, black holes, comets),
 -- space stations, and all missing columns
+--
+-- WARNING: This is a DESTRUCTIVE migration — it drops ALL tables before recreating them.
+-- It is intended as a one-time reset during development only. DO NOT use this pattern
+-- for future migrations in production. Future migrations should be additive (ALTER TABLE,
+-- CREATE TABLE) to preserve existing data.
 
 -- Drop tables in reverse dependency order
 DROP TABLE IF EXISTS planet_strategic_deposits;
@@ -124,6 +129,7 @@ CREATE TABLE planets (
     intelligence_stat INT NOT NULL,
     diligence_stat INT NOT NULL,
     resolve_stat INT NOT NULL,
+    owner_empire_id INT,
     CONSTRAINT fk_planet_solar_system FOREIGN KEY (solar_system_id) REFERENCES solar_systems(id)
 );
 

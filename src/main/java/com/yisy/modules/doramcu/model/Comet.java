@@ -50,14 +50,6 @@ public class Comet {
         MASSIVE
     }
 
-    public enum StrategicResource {
-        ELERIUM,
-        ANTI_MATTER,
-        THULIUM,
-        DURANTIUM,
-        PROMETHION
-    }
-
     public Comet() {
     }
 

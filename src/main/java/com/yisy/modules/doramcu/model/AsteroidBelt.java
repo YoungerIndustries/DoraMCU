@@ -38,14 +38,6 @@ public class AsteroidBelt {
     @Column(length = 15)
     private StrategicResource strategicDeposit;
 
-    public enum StrategicResource {
-        ELERIUM,
-        ANTI_MATTER,
-        THULIUM,
-        DURANTIUM,
-        PROMETHION
-    }
-
     public AsteroidBelt() {
     }
 

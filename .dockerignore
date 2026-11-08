@@ -1,0 +1,38 @@
+# Build output
+build/
+*.jar
+*.war
+
+# Gradle
+.gradle/
+gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.out/
+
+# Git
+.git/
+.gitignore
+
+# Logs
+logs/
+*.log
+
+# DL models (generated at runtime)
+dl-models/
+
+# Crash dumps
+*.txt
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.swp
+*~

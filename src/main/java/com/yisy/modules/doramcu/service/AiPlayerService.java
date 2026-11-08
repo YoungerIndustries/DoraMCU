@@ -92,19 +92,18 @@ public class AiPlayerService {
             session.registerAiPlayer(aiPlayerId, difficulty.name());
         }
 
-        // Get the actual Game player ID (which is players.size() - 1)
+        // Get the actual Game player (already set up with empire, home system, and fleets by joinSession)
         session = gameSessionService.getGameSession(sessionId);
         if (session != null) {
             session.getLock().writeLock().lock();
             try {
-                Game game = session.getGame();
+                Game game = (Game) session.getGame();
                 // The last player added is our AI
                 List<Player> players = game.getPlayers();
                 Player aiPlayer = players.get(players.size() - 1);
 
-                // Create starting fleets
-                game.createStartingFleets(aiPlayer);
-                log.debug("AI player {} created starting fleets with Game ID: {}", name, aiPlayer.getId());
+                log.debug("AI player {} created with Game ID: {} and empire ID: {}",
+                        name, aiPlayer.getId(), aiPlayer.getEmpireId());
 
                 // Create EmpireAiCore for this AI player
                 int researchLevel = switch (difficulty) {
@@ -131,8 +130,9 @@ public class AiPlayerService {
         // Find the index in session's player list
         List<Long> sessionPlayers = new ArrayList<>(session.getPlayerIds());
         int index = sessionPlayers.indexOf(playerId);
-        if (index >= 0 && index < session.getGame().getPlayers().size()) {
-            return session.getGame().getPlayers().get(index).getId();
+        Game game = (Game) session.getGame();
+        if (index >= 0 && index < game.getPlayers().size()) {
+            return game.getPlayers().get(index).getId();
         }
         return -1;
     }
@@ -154,7 +154,7 @@ public class AiPlayerService {
             throw new NoSuchElementException("Session not found: " + sessionId);
         }
 
-        GameStateResponse state = gameSessionService.getGameState(null, sessionId);
+        GameStateResponse state = gameSessionService.getGameState(null, sessionId, true);
 
         // Simultaneous turns: execute actions for all AI players
         for (Map.Entry<Long, Difficulty> entry : aiDifficulties.entrySet()) {
@@ -167,10 +167,11 @@ public class AiPlayerService {
             // Find the game player ID for this session player
             List<Long> sessionPlayers = new ArrayList<>(session.getPlayerIds());
             int index = sessionPlayers.indexOf(sessionPlayerId);
-            if (index < 0 || index >= session.getGame().getPlayers().size()) {
+            Game game = (Game) session.getGame();
+            if (index < 0 || index >= game.getPlayers().size()) {
                 continue;
             }
-            int gamePlayerId = session.getGame().getPlayers().get(index).getId();
+            int gamePlayerId = game.getPlayers().get(index).getId();
 
             // Perform AI actions
             performAiActions(sessionId, sessionPlayerId, gamePlayerId, difficulty);
@@ -196,7 +197,7 @@ public class AiPlayerService {
 
         session.getLock().writeLock().lock();
         try {
-            Game game = session.getGame();
+            Game game = (Game) session.getGame();
             Player aiPlayer = findPlayerById(game, gamePlayerId);
             if (aiPlayer == null || aiPlayer.isEliminated()) {
                 return;
@@ -255,18 +256,85 @@ public class AiPlayerService {
             }
         }
 
-        // Resources are managed by ResourcePipelineManager; use defaults for AI decisions
-        // The AI core uses these values to determine build affordability
+        // Gather stations
+        List<com.yisy.modules.doramcu.hex.SpaceStation> stations = new ArrayList<>();
+        for (com.yisy.modules.doramcu.hex.SpaceStation station : game.getSpaceStations()) {
+            if (station.getOwner() != null && station.getOwner().getId() == aiPlayer.getId()) {
+                stations.add(station);
+            }
+        }
+
+        // Get actual resources from the player's resource pipeline
+        java.util.Map<String, Integer> resources = getActualResources(aiPlayer, game);
+        int minerals = resources.getOrDefault("minerals", 100);
+        int energy = resources.getOrDefault("energy", 50);
+        int food = resources.getOrDefault("food", 30);
+        int credits = resources.getOrDefault("credits", 50);
+
         return AiDecisionContext.builder()
                 .player(aiPlayer)
                 .game(game)
                 .ownedFleets(ownedFleets)
                 .enemyFleets(enemyFleets)
-                .minerals(100)
-                .energy(50)
-                .food(30)
-                .credits(50)
+                .stations(stations)
+                .resources(resources)
+                .minerals(minerals)
+                .energy(energy)
+                .food(food)
+                .credits(credits)
                 .build();
+    }
+
+    /**
+     * Gets the actual resources for a player from their resource pipeline.
+     * Falls back to default values if the pipeline is not available.
+     */
+    private java.util.Map<String, Integer> getActualResources(Player aiPlayer, Game game) {
+        // Try to get resources from the player's resource pipeline
+        try {
+            com.yisy.modules.doramcu.hex.ResourcePipelineManager pipeline =
+                    game.getPipelineManager(aiPlayer.getEmpireId());
+            if (pipeline != null) {
+                java.util.Map<String, Integer> resources = new java.util.HashMap<>();
+
+                // Get raw resources
+                com.yisy.modules.doramcu.hex.ResourceStorage<com.yisy.modules.doramcu.hex.RawResourceType> rawStorage =
+                        pipeline.getRawStorage();
+                if (rawStorage != null) {
+                    for (com.yisy.modules.doramcu.hex.RawResourceType type : com.yisy.modules.doramcu.hex.RawResourceType.values()) {
+                        resources.put(type.name().toLowerCase(), rawStorage.getAmount(type));
+                    }
+                }
+
+                // Get refined resources
+                com.yisy.modules.doramcu.hex.ResourceStorage<com.yisy.modules.doramcu.hex.RefinedResourceType> refinedStorage =
+                        pipeline.getRefinedStorage();
+                if (refinedStorage != null) {
+                    for (com.yisy.modules.doramcu.hex.RefinedResourceType type : com.yisy.modules.doramcu.hex.RefinedResourceType.values()) {
+                        resources.put(type.name().toLowerCase(), refinedStorage.getAmount(type));
+                    }
+                }
+
+                // Map common resource names for AI decision making
+                int minerals = resources.getOrDefault("minerals", 0) +
+                               resources.getOrDefault("iron", 0) +
+                               resources.getOrDefault("aluminum", 0);
+                int energy = resources.getOrDefault("energy", 0) +
+                             resources.getOrDefault("gas", 0);
+
+                resources.put("minerals", minerals);
+                resources.put("energy", Math.max(energy, resources.getOrDefault("energy", 50)));
+                resources.put("food", resources.getOrDefault("food", 30));
+                resources.put("credits", resources.getOrDefault("credits", 50));
+
+                return resources;
+            }
+        } catch (Exception e) {
+            log.debug("Failed to get actual resources for player {}: {}", aiPlayer.getName(), e.getMessage());
+        }
+
+        // Fallback to default values
+        return Map.of("minerals", 100, "energy", 50, "food", 30, "credits", 50);
     }
 
     /**
@@ -275,74 +343,82 @@ public class AiPlayerService {
      */
     private void executeDecision(String sessionId, Long sessionPlayerId, AiDecision decision,
                                   Game game, Player aiPlayer) {
-        // Capture game state before action for learning
-        GameStateResponse stateBefore = gameSessionService.getGameState(sessionPlayerId, sessionId);
+        // Capture game state before action for learning (summary mode to avoid full subsector iteration)
+        GameStateResponse stateBefore = gameSessionService.getGameState(sessionPlayerId, sessionId, true);
 
         ActionReward.Action dlAction = mapActionToDlAction(decision.getActionType());
 
-        switch (decision.getActionType()) {
-            case MOVE_FLEET -> {
-                if (decision.getFleetId() != null && decision.getTargetPosition() != null) {
-                    MoveFleetRequest request = new MoveFleetRequest(
-                            decision.getFleetId(),
-                            decision.getTargetPosition().getX(),
-                            decision.getTargetPosition().getY());
-                    gameSessionService.moveFleet(sessionPlayerId, sessionId, request);
-                    log.debug("AI executed MOVE_FLEET: {}", decision.getReasoning());
+        try {
+            switch (decision.getActionType()) {
+                case MOVE_FLEET -> {
+                    if (decision.getFleetId() != null && decision.getTargetPosition() != null) {
+                        MoveFleetRequest request = new MoveFleetRequest(
+                                decision.getFleetId(),
+                                decision.getTargetPosition().getX(),
+                                decision.getTargetPosition().getY());
+                        gameSessionService.moveFleet(sessionPlayerId, sessionId, request);
+                        log.debug("AI executed MOVE_FLEET: {}", decision.getReasoning());
+                    }
                 }
-            }
-            case ENGAGE_COMBAT -> {
-                if (decision.getFleetId() != null && decision.getTargetEnemyFleetId() != null) {
-                    Fleet attacker = game.getFleet(decision.getFleetId());
-                    Fleet target = game.getFleet(decision.getTargetEnemyFleetId());
-                    if (attacker != null && target != null &&
-                            attacker.getPosition() != null && target.getPosition() != null) {
-                        if (isAdjacent(attacker.getPosition(), target.getPosition())) {
-                            EngageCombatRequest request = new EngageCombatRequest(
-                                    decision.getFleetId(),
-                                    decision.getTargetEnemyFleetId());
-                            gameSessionService.engageCombat(sessionPlayerId, sessionId, request);
-                            log.debug("AI executed ENGAGE_COMBAT: {}", decision.getReasoning());
-                        } else {
-                            // Move toward enemy first
-                            Hex3D targetPos = target.getPosition();
-                            MoveFleetRequest request = new MoveFleetRequest(
-                                    decision.getFleetId(),
-                                    targetPos.getX(),
-                                    targetPos.getY());
-                            gameSessionService.moveFleet(sessionPlayerId, sessionId, request);
-                            log.debug("AI moved toward enemy: {}", decision.getReasoning());
+                case ENGAGE_COMBAT -> {
+                    if (decision.getFleetId() != null && decision.getTargetEnemyFleetId() != null) {
+                        Fleet attacker = game.getFleet(decision.getFleetId());
+                        Fleet target = game.getFleet(decision.getTargetEnemyFleetId());
+                        if (attacker != null && target != null &&
+                                attacker.getPosition() != null && target.getPosition() != null) {
+                            if (isAdjacent(attacker.getPosition(), target.getPosition())) {
+                                EngageCombatRequest request = new EngageCombatRequest(
+                                        decision.getFleetId(),
+                                        decision.getTargetEnemyFleetId());
+                                gameSessionService.engageCombat(sessionPlayerId, sessionId, request);
+                                log.debug("AI executed ENGAGE_COMBAT: {}", decision.getReasoning());
+                            } else {
+                                // Move toward enemy first
+                                Hex3D targetPos = target.getPosition();
+                                MoveFleetRequest request = new MoveFleetRequest(
+                                        decision.getFleetId(),
+                                        targetPos.getX(),
+                                        targetPos.getY());
+                                gameSessionService.moveFleet(sessionPlayerId, sessionId, request);
+                                log.debug("AI moved toward enemy: {}", decision.getReasoning());
+                            }
                         }
                     }
                 }
-            }
-            case BUILD_SHIP -> {
-                Integer fleetId = getRandomFleetId(aiPlayer);
-                if (fleetId != null && decision.getShipTypeToBuild() != null) {
-                    BuildShipRequest request = new BuildShipRequest(
-                            decision.getShipTypeToBuild().name(),
-                            fleetId);
-                    gameSessionService.buildShip(sessionPlayerId, sessionId, request);
-                    log.debug("AI executed BUILD_SHIP: {}", decision.getReasoning());
+                case BUILD_SHIP -> {
+                    Integer fleetId = getRandomFleetId(aiPlayer);
+                    if (fleetId != null && decision.getShipTypeToBuild() != null) {
+                        BuildShipRequest request = new BuildShipRequest(
+                                decision.getShipTypeToBuild().name(),
+                                fleetId);
+                        gameSessionService.buildShip(sessionPlayerId, sessionId, request);
+                        log.debug("AI executed BUILD_SHIP: {}", decision.getReasoning());
+                    }
+                }
+                case SCOUT -> {
+                    if (decision.getFleetId() != null && decision.getTargetPosition() != null) {
+                        MoveFleetRequest request = new MoveFleetRequest(
+                                decision.getFleetId(),
+                                decision.getTargetPosition().getX(),
+                                decision.getTargetPosition().getY());
+                        gameSessionService.moveFleet(sessionPlayerId, sessionId, request);
+                        log.debug("AI executed SCOUT: {}", decision.getReasoning());
+                    }
+                }
+                case RETREAT, FORTIFY, WAIT -> {
+                    log.debug("AI executed {}: {}", decision.getActionType(), decision.getReasoning());
                 }
             }
-            case SCOUT -> {
-                if (decision.getFleetId() != null && decision.getTargetPosition() != null) {
-                    MoveFleetRequest request = new MoveFleetRequest(
-                            decision.getFleetId(),
-                            decision.getTargetPosition().getX(),
-                            decision.getTargetPosition().getY());
-                    gameSessionService.moveFleet(sessionPlayerId, sessionId, request);
-                    log.debug("AI executed SCOUT: {}", decision.getReasoning());
-                }
-            }
-            case RETREAT, FORTIFY, WAIT -> {
-                log.debug("AI executed {}: {}", decision.getActionType(), decision.getReasoning());
-            }
+        } catch (IllegalStateException e) {
+            // AI action failed (e.g., cannot afford ship, out of range) — log and continue
+            log.debug("AI action {} failed for player {}: {}", decision.getActionType(), aiPlayer.getName(), e.getMessage());
+        } catch (Exception e) {
+            log.warn("Unexpected error executing AI action {} for player {}: {}",
+                    decision.getActionType(), aiPlayer.getName(), e.getMessage(), e);
         }
 
-        // Capture game state after action and record for learning
-        GameStateResponse stateAfter = gameSessionService.getGameState(sessionPlayerId, sessionId);
+        // Capture game state after action and record for learning (summary mode to avoid full subsector iteration)
+        GameStateResponse stateAfter = gameSessionService.getGameState(sessionPlayerId, sessionId, true);
         recordActionForLearning(sessionId, sessionPlayerId, stateBefore, stateAfter, dlAction);
     }
 
@@ -458,214 +534,6 @@ public class AiPlayerService {
     }
 
     /**
-     * Easy AI: makes random decisions with limited strategy.
-     */
-    private void performEasyActions(Game game, Player aiPlayer,
-                                     String sessionId, Long playerId) {
-        // Randomly decide to build a ship or move a fleet
-        int action = random.nextInt(3);
-
-        switch (action) {
-            case 0 -> {
-                // Build a random ship type
-                ShipType[] types = {ShipType.FRIGATE, ShipType.DESTROYER};
-                ShipType type = types[random.nextInt(types.length)];
-                Integer fleetId = getRandomFleetId(aiPlayer);
-                if (fleetId != null) {
-                    BuildShipRequest request = new BuildShipRequest(type.name(), fleetId);
-                    gameSessionService.buildShip(playerId, sessionId, request);
-                    log.debug("AI Easy: built {} in fleet {}", type, fleetId);
-                }
-            }
-            case 1 -> {
-                // Move a random fleet to a random position
-                Integer fleetId = getRandomFleetId(aiPlayer);
-                if (fleetId != null) {
-                    int row = random.nextInt(10) - 5;
-                    int col = random.nextInt(10) - 5;
-                    MoveFleetRequest request = new MoveFleetRequest(fleetId, row, col);
-                    gameSessionService.moveFleet(playerId, sessionId, request);
-                    log.debug("AI Easy: moved fleet {} to ({}, {})", fleetId, row, col);
-                }
-            }
-            default -> {
-                // Do nothing this turn
-                log.debug("AI Easy: skipped turn");
-            }
-        }
-    }
-
-    /**
-     * Medium AI: uses DL AI predictions blended with heuristics for balanced strategy.
-     */
-    private void performMediumActions(Game game, Player aiPlayer,
-                                       String sessionId, Long playerId) {
-        // Get DL AI predicted action
-        ActionReward.Action predictedAction = getDlPredictedAction(sessionId, playerId);
-        log.debug("AI Medium: DL predicted action: {}", predictedAction);
-
-        switch (predictedAction) {
-            case BUILD_SHIP -> {
-                // Flat resources removed – use pipeline modules
-                }
-            case MOVE_FLEET, EXPAND_COLONY -> {
-                Fleet target = findNearestEnemyFleet(game, aiPlayer);
-                Integer fleetId = getBestFleetId(aiPlayer, game);
-                if (fleetId != null) {
-                    if (target != null && target.getPosition() != null) {
-                        // Move toward enemy
-                        Hex3D targetPos = target.getPosition();
-                        MoveFleetRequest request = new MoveFleetRequest(
-                                fleetId, targetPos.getX(), targetPos.getY());
-                        gameSessionService.moveFleet(playerId, sessionId, request);
-                        log.debug("AI Medium: moved fleet {} toward enemy at ({}, {})",
-                                fleetId, targetPos.getX(), targetPos.getY());
-                    } else {
-                        // Expand to random position near center
-                        int row = random.nextInt(10) - 5;
-                        int col = random.nextInt(10) - 5;
-                        MoveFleetRequest request = new MoveFleetRequest(fleetId, row, col);
-                        gameSessionService.moveFleet(playerId, sessionId, request);
-                        log.debug("AI Medium: moved fleet {} to ({}, {}) for expansion", fleetId, row, col);
-                    }
-                }
-            }
-            case ENGAGE_COMBAT -> {
-                Fleet target = findNearestEnemyFleet(game, aiPlayer);
-                if (target != null) {
-                    Integer attackerFleetId = getBestFleetId(aiPlayer, game);
-                    if (attackerFleetId != null) {
-                        Fleet attacker = game.getFleet(attackerFleetId);
-                        if (attacker != null && target.getPosition() != null) {
-                            if (isAdjacent(attacker.getPosition(), target.getPosition())) {
-                                EngageCombatRequest request = new EngageCombatRequest(
-                                        attackerFleetId, target.getId());
-                                gameSessionService.engageCombat(playerId, sessionId, request);
-                                log.debug("AI Medium: engaged combat with fleet {}", target.getId());
-                            } else {
-                                // Move toward enemy first
-                                Hex3D targetPos = target.getPosition();
-                                MoveFleetRequest request = new MoveFleetRequest(
-                                        attackerFleetId, targetPos.getX(), targetPos.getY());
-                                gameSessionService.moveFleet(playerId, sessionId, request);
-                                log.debug("AI Medium: moved fleet {} toward enemy at ({}, {})",
-                                        attackerFleetId, targetPos.getX(), targetPos.getY());
-                            }
-                        }
-                    }
-                }
-            }
-            case WAIT -> {
-                log.debug("AI Medium: waiting this turn");
-            }
-        }
-    }
-
-    /**
-     * Hard AI: uses DL AI predictions for aggressive expansion with optimal resource usage.
-     */
-    private void performHardActions(Game game, Player aiPlayer,
-                                     String sessionId, Long playerId) {
-        // Get DL AI predicted action
-        ActionReward.Action predictedAction = getDlPredictedAction(sessionId, playerId);
-        log.debug("AI Hard: DL predicted action: {}", predictedAction);
-
-        // Create new fleet if no fleets exist
-        if (aiPlayer.getOwnedFleetIds().isEmpty()) {
-            game.createStartingFleets(aiPlayer);
-            log.debug("AI Hard: created starting fleets");
-            return;
-        }
-
-        switch (predictedAction) {
-            case BUILD_SHIP -> {
-                // Flat resources removed – use pipeline modules
-            }
-            case MOVE_FLEET, EXPAND_COLONY -> {
-                Fleet target = findNearestEnemyFleet(game, aiPlayer);
-                Integer fleetId = getBestFleetId(aiPlayer, game);
-                if (fleetId != null) {
-                    if (target != null && target.getPosition() != null) {
-                        // Move toward enemy
-                        Hex3D targetPos = target.getPosition();
-                        MoveFleetRequest request = new MoveFleetRequest(
-                                fleetId, targetPos.getX(), targetPos.getY());
-                        gameSessionService.moveFleet(playerId, sessionId, request);
-                        log.debug("AI Hard: moved fleet {} toward enemy at ({}, {})",
-                                fleetId, targetPos.getX(), targetPos.getY());
-                    } else {
-                        // Expand to random position
-                        int row = random.nextInt(10) - 5;
-                        int col = random.nextInt(10) - 5;
-                        MoveFleetRequest request = new MoveFleetRequest(fleetId, row, col);
-                        gameSessionService.moveFleet(playerId, sessionId, request);
-                        log.debug("AI Hard: moved fleet {} to ({}, {}) for expansion", fleetId, row, col);
-                    }
-                }
-            }
-            case ENGAGE_COMBAT -> {
-                Fleet target = findNearestEnemyFleet(game, aiPlayer);
-                if (target != null) {
-                    Integer attackerFleetId = getBestFleetId(aiPlayer, game);
-                    if (attackerFleetId != null) {
-                        Fleet attacker = game.getFleet(attackerFleetId);
-                        if (attacker != null && target.getPosition() != null) {
-                            if (isAdjacent(attacker.getPosition(), target.getPosition())) {
-                                EngageCombatRequest request = new EngageCombatRequest(
-                                        attackerFleetId, target.getId());
-                                gameSessionService.engageCombat(playerId, sessionId, request);
-                                log.debug("AI Hard: engaged combat with fleet {}", target.getId());
-                            } else {
-                                // Move toward enemy first
-                                Hex3D targetPos = target.getPosition();
-                                MoveFleetRequest request = new MoveFleetRequest(
-                                        attackerFleetId, targetPos.getX(), targetPos.getY());
-                                gameSessionService.moveFleet(playerId, sessionId, request);
-                                log.debug("AI Hard: moved fleet {} toward enemy at ({}, {})",
-                                        attackerFleetId, targetPos.getX(), targetPos.getY());
-                            }
-                        }
-                    }
-                }
-            }
-            case WAIT -> {
-                log.debug("AI Hard: waiting this turn");
-            }
-        }
-    }
-
-    /**
-     * Chooses a ship type based on available resources (Medium difficulty).
-     */
-    private ShipType chooseShipTypeMedium(int minerals, int energy) {
-        AiDifficultyConfig.Medium medium = aiDifficultyConfig.getMedium();
-        if (minerals >= medium.getCruiserMinerals() && energy >= medium.getCruiserEnergy()) {
-            return ShipType.CRUISER;
-        } else if (minerals >= medium.getDestroyerMinerals() && energy >= medium.getDestroyerEnergy()) {
-            return ShipType.DESTROYER;
-        } else {
-            return ShipType.FRIGATE;
-        }
-    }
-
-    /**
-     * Chooses the optimal ship type based on resources and game state (Hard difficulty).
-     */
-    private ShipType chooseShipTypeHard(int minerals, int energy, int food) {
-        AiDifficultyConfig.Hard hard = aiDifficultyConfig.getHard();
-        // Prefer larger ships when resources allow
-        if (minerals >= hard.getBattleshipMinerals() && energy >= hard.getBattleshipEnergy()) {
-            return ShipType.BATTLESHIP;
-        } else if (minerals >= hard.getCruiserMinerals() && energy >= hard.getCruiserEnergy()) {
-            return ShipType.CRUISER;
-        } else if (minerals >= hard.getDestroyerMinerals() && energy >= hard.getDestroyerEnergy()) {
-            return ShipType.DESTROYER;
-        } else {
-            return ShipType.FRIGATE;
-        }
-    }
-
-    /**
      * Finds the nearest enemy fleet to the AI player's fleets.
      */
     private Fleet findNearestEnemyFleet(Game game, Player aiPlayer) {
@@ -771,6 +639,13 @@ public class AiPlayerService {
                 .filter(p -> p.getId() == playerId)
                 .findFirst()
                 .orElse(null);
+    }
+
+    /**
+     * Returns the number of active AI cores.
+     */
+    public int getAiCoreCount() {
+        return aiCoreMap.size();
     }
 
     /**

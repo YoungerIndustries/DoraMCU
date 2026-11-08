@@ -95,7 +95,7 @@ class MaterialTest {
     @Test
     @DisplayName("Should throw for value out of range")
     void testFromValueOutOfRange() {
-        assertThrows(IllegalArgumentException.class, () -> Material.fromValue(6));
+        assertThrows(IllegalArgumentException.class, () -> Material.fromValue(8));
     }
 
     @Test
@@ -117,9 +117,9 @@ class MaterialTest {
     // ---- Enum size test ----
 
     @Test
-    @DisplayName("Should have 6 material types")
+    @DisplayName("Should have 8 material types")
     void testEnumSize() {
-        assertEquals(6, Material.values().length);
+        assertEquals(8, Material.values().length);
     }
 
     // ---- Value uniqueness test ----

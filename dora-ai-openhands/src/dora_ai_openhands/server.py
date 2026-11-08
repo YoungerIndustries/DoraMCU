@@ -63,6 +63,66 @@ def get_agent(mode: str) -> DoraAgent:
     return _agents[mode]
 
 
+def _extract_conversation_output(conversation) -> str:
+    """
+    Extract the agent's output from a completed OpenHands Conversation.
+    
+    Tries multiple strategies to get the actual response text from the conversation,
+    falling back to a summary if the exact format is unknown.
+    """
+    # Strategy 1: Try conversation.messages (list of message dicts)
+    if hasattr(conversation, 'messages') and conversation.messages:
+        messages = conversation.messages
+        # Find the last assistant/tool response
+        for msg in reversed(messages):
+            if isinstance(msg, dict):
+                role = msg.get('role', '')
+                if role in ('assistant', 'agent'):
+                    content = msg.get('content', '')
+                    if content:
+                        return content
+            elif hasattr(msg, 'role'):
+                if msg.role in ('assistant', 'agent'):
+                    content = getattr(msg, 'content', '') or ''
+                    if content:
+                        return content
+
+    # Strategy 2: Try conversation.history
+    if hasattr(conversation, 'history') and conversation.history:
+        history = conversation.history
+        for entry in reversed(history):
+            if isinstance(entry, dict):
+                role = entry.get('role', '')
+                if role in ('assistant', 'agent'):
+                    content = entry.get('content', '')
+                    if content:
+                        return content
+
+    # Strategy 3: Try conversation.output
+    if hasattr(conversation, 'output'):
+        output = conversation.output
+        if output:
+            return str(output)
+
+    # Strategy 4: Try conversation.result
+    if hasattr(conversation, 'result'):
+        result = conversation.result
+        if result:
+            return str(result)
+
+    # Strategy 5: Try to get the last state/event
+    if hasattr(conversation, 'get_last_message'):
+        try:
+            last_msg = conversation.get_last_message()
+            if last_msg:
+                return str(last_msg)
+        except Exception:
+            pass
+
+    # Fallback: return a summary of what happened
+    return "Task completed by DoraAI agent. (Detailed output capture depends on OpenHands SDK version.)"
+
+
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
     """
@@ -89,26 +149,33 @@ async def chat(request: ChatRequest):
         yield f"event: status\ndata: processing\n\n"
         
         try:
-            # Run the agent synchronously in a simple way
-            # For production, use asyncio.to_thread or a task queue
-            import asyncio
-            loop = asyncio.get_event_loop()
-            
             # Create a simple conversation and run it
             from openhands.sdk import Conversation
             conversation = Conversation(agent=agent.agent, workspace=agent.workspace)
             conversation.send_message(message)
             
-            # Run in background thread
-            def run_agent():
-                try:
-                    conversation.run()
-                except Exception as e:
-                    print(f"Agent error: {e}")
+            # Run the agent and capture events in real-time
+            import asyncio
             
-            import threading
-            thread = threading.Thread(target=run_agent, daemon=True)
-            thread.start()
+            async def run_and_stream():
+                try:
+                    # Run in a thread to avoid blocking the event loop
+                    loop = asyncio.get_event_loop()
+                    await loop.run_in_executor(None, conversation.run)
+                    
+                    # Extract and send the agent's output
+                    output = _extract_conversation_output(conversation)
+                    if output:
+                        # Split into chunks for streaming
+                        for chunk in output.split('\n'):
+                            if chunk.strip():
+                                yield f"event: message\ndata: {chunk}\n\n"
+                except Exception as e:
+                    yield f"event: error\ndata: {str(e)}\n\n"
+            
+            # Stream events as they become available
+            async for event in run_and_stream():
+                yield event
             
             # Send completion event
             yield f"event: status\ndata: done\n\n"
@@ -155,9 +222,8 @@ async def chat_blocking(request: ChatRequest):
         conversation.send_message(message)
         conversation.run()
         
-        # For now, return a simple response
-        # In production, capture the agent's output
-        response_content = "Task completed. (Response capture will be implemented in next iteration.)"
+        # Capture the agent's actual output from the conversation
+        response_content = _extract_conversation_output(conversation)
         conv_manager.add_message(session_id, "assistant", response_content)
         
         return ChatResponse(

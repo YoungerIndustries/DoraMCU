@@ -134,7 +134,6 @@ public class Nebula extends CelestialBody {
         this.cloakingBonus = DEFAULT_CLOAKING_BONUS;
         this.hasStrategicDeposit = true;
         this.strategicResource = StrategicResource.ELERIUM;
-        generate();
     }
 
     /**
@@ -158,7 +157,6 @@ public class Nebula extends CelestialBody {
         this.cloakingBonus = nebulaSize.getBaseCloakingBonus();
         this.hasStrategicDeposit = true;
         this.strategicResource = StrategicResource.ELERIUM;
-        generate();
     }
 
     /**
@@ -395,6 +393,7 @@ public class Nebula extends CelestialBody {
      * @return the hex at the given position, or null if out of bounds
      */
     public Hex3D get(int x, int y) {
+        ensureGeometryGenerated();
         return map.get(x, y);
     }
 
@@ -405,6 +404,7 @@ public class Nebula extends CelestialBody {
      * @return the stored hex, or null if not present
      */
     public Hex3D get(Hex3D hex) {
+        ensureGeometryGenerated();
         return map.get(hex);
     }
 
@@ -416,6 +416,7 @@ public class Nebula extends CelestialBody {
      * @return true if the coordinates are within the nebula
      */
     public boolean contains(int x, int y) {
+        ensureGeometryGenerated();
         return map.contains(x, y);
     }
 
@@ -426,6 +427,7 @@ public class Nebula extends CelestialBody {
      * @return true if the hex is within the nebula
      */
     public boolean contains(Hex3D hex) {
+        ensureGeometryGenerated();
         return map.get(hex) != null;
     }
 
@@ -433,6 +435,7 @@ public class Nebula extends CelestialBody {
      * @return all hex cells in the nebula (unmodifiable collection)
      */
     public Collection<Hex3D> getAll() {
+        ensureGeometryGenerated();
         return map.getAll();
     }
 
@@ -443,6 +446,7 @@ public class Nebula extends CelestialBody {
      * @return list of hexes matching the state
      */
     public List<Hex3D> findByState(HexState state) {
+        ensureGeometryGenerated();
         return map.findByState(state);
     }
 
@@ -453,6 +457,7 @@ public class Nebula extends CelestialBody {
      * @return list of core hexes
      */
     public List<Hex3D> getCore() {
+        ensureGeometryGenerated();
         int coreRadius = radius / 2;
         Hex3D center = new Hex3D(0, 0, 0);
         return map.getAll().stream()
@@ -467,6 +472,7 @@ public class Nebula extends CelestialBody {
      * @return list of edge hexes
      */
     public List<Hex3D> getEdge() {
+        ensureGeometryGenerated();
         int coreRadius = radius / 2;
         Hex3D center = new Hex3D(0, 0, 0);
         return map.getAll().stream()
@@ -483,6 +489,7 @@ public class Nebula extends CelestialBody {
      * @return the center hex at (0, 0, 0)
      */
     public Hex3D getCenter() {
+        ensureGeometryGenerated();
         return map.get(0, 0);
     }
 

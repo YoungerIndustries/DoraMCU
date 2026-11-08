@@ -4,17 +4,27 @@ import com.yisy.modules.doradl.dto.GameStateResponse;
 import com.yisy.modules.doradl.dto.PlayerSummary;
 import com.yisy.modules.doradl.dto.SubSectorInfo;
 import com.yisy.modules.doradl.model.GameStateFeatures;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
 
 /**
- * Converts game state data into feature vectors for the neural network.
+ * Extracts feature vectors from the DoraMCU 4X game state for the neural network.
+ * <p>
+ * This is the local DL4J implementation for the 4X game type. When dl.rest-client.enabled=true,
+ * feature extraction is handled by the Python microservice.
+ * </p>
+ * <p>
+ * Implements {@link FeatureExtractor} to integrate with the pluggable feature extraction system,
+ * allowing other game types (Traveller, Captain's Log) to provide their own extractors.
+ * </p>
  * Thread-safe for concurrent game sessions.
  */
 @Component
-public class GameStateFeatureExtractor {
+@ConditionalOnProperty(name = "dl.rest-client.enabled", havingValue = "false", matchIfMissing = true)
+public class GameStateFeatureExtractor implements FeatureExtractorRegistry.GameTypedExtractor {
 
     // Normalization constants
     static final int MAX_TURNS = 50;
@@ -25,12 +35,20 @@ public class GameStateFeatureExtractor {
     static final int MAX_RESOURCES = 10000;
     static final int MAX_DISTANCE = 100;
 
-    public GameStateFeatures extract(GameStateResponse gameState, Long playerId) {
-        if (gameState == null) {
+    @Override
+    public GameStateFeatures extract(Object gameStateObj, Long playerId) {
+        if (gameStateObj == null) {
             throw new IllegalArgumentException("Game state cannot be null");
         }
         if (playerId == null) {
             throw new IllegalArgumentException("Player ID cannot be null");
+        }
+        GameStateResponse gameState;
+        if (gameStateObj instanceof GameStateResponse) {
+            gameState = (GameStateResponse) gameStateObj;
+        } else {
+            throw new IllegalArgumentException(
+                "Expected GameStateResponse, got " + gameStateObj.getClass().getSimpleName());
         }
 
         GameStateFeatures features = new GameStateFeatures();
@@ -224,5 +242,22 @@ public class GameStateFeatureExtractor {
 
     private double normalize(int value, int max) {
         return Math.min(1.0, Math.max(0.0, (double) value / max));
+    }
+
+    // ---- FeatureExtractor interface implementation ----
+
+    @Override
+    public Class<?> getInputType() {
+        return GameStateResponse.class;
+    }
+
+    @Override
+    public FeatureExtractorRegistry.SupportedGameType getSupportedGameType() {
+        return FeatureExtractorRegistry.SupportedGameType.DORAMCU_4X;
+    }
+
+    @Override
+    public boolean isDefaultExtractor() {
+        return true;
     }
 }

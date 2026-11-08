@@ -12,9 +12,11 @@ import com.yisy.modules.doramcu.repository.GasGiantRepository;
 import com.yisy.modules.doramcu.repository.MoonRepository;
 import com.yisy.modules.doramcu.repository.NebulaRepository;
 import com.yisy.modules.doramcu.repository.PlanetRepository;
+import com.yisy.modules.doramcu.repository.SectorRepository;
 import com.yisy.modules.doramcu.repository.SolarSystemRepository;
 import com.yisy.modules.doramcu.repository.SpaceStationRepository;
 import com.yisy.modules.doramcu.repository.StarRepository;
+import com.yisy.modules.doramcu.repository.SubSectorRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,8 @@ import java.util.*;
 public class GalaxyService {
 
     private final GalaxyRepository galaxyRepository;
+    private final SectorRepository sectorRepository;
+    private final SubSectorRepository subSectorRepository;
     private final SolarSystemRepository solarSystemRepository;
     private final StarRepository starRepository;
     private final PlanetRepository planetRepository;
@@ -47,6 +51,8 @@ public class GalaxyService {
     private GalaxyGenerationProgress progressListener;
 
     public GalaxyService(GalaxyRepository galaxyRepository,
+                         SectorRepository sectorRepository,
+                         SubSectorRepository subSectorRepository,
                          SolarSystemRepository solarSystemRepository,
                          StarRepository starRepository,
                          PlanetRepository planetRepository,
@@ -59,6 +65,8 @@ public class GalaxyService {
                          SpaceStationRepository spaceStationRepository,
                          AsteroidRepository asteroidRepository) {
         this.galaxyRepository = galaxyRepository;
+        this.sectorRepository = sectorRepository;
+        this.subSectorRepository = subSectorRepository;
         this.solarSystemRepository = solarSystemRepository;
         this.starRepository = starRepository;
         this.planetRepository = planetRepository;
@@ -212,8 +220,26 @@ public class GalaxyService {
         dbGalaxy.setHyperlaneDensity(hyperlaneDensity);
         dbGalaxy = galaxyRepository.save(dbGalaxy);
 
+        // Persist all sectors and subsectors with their names
         int systemCount = 0;
         for (com.yisy.modules.doramcu.hex.Galaxy.Sector sector : inMemoryGalaxy.getAllSectors()) {
+            com.yisy.modules.doramcu.model.Sector dbSector = new com.yisy.modules.doramcu.model.Sector();
+            dbSector.setGalaxy(dbGalaxy);
+            dbSector.setSectorRow(sector.getRow());
+            dbSector.setSectorCol(sector.getCol());
+            dbSector.setName(sector.getName());
+            dbSector.setTradeType(sector.getTradeType());
+            dbSector = sectorRepository.save(dbSector);
+
+            for (com.yisy.modules.doramcu.hex.SubSector subSector : sector.getAllSubSectors()) {
+                com.yisy.modules.doramcu.model.SubSector dbSubSector = new com.yisy.modules.doramcu.model.SubSector();
+                dbSubSector.setSector(dbSector);
+                dbSubSector.setSubSectorRow(subSector.getSubRow());
+                dbSubSector.setSubSectorCol(subSector.getSubCol());
+                dbSubSector.setName(subSector.getName());
+                subSectorRepository.save(dbSubSector);
+            }
+
             for (com.yisy.modules.doramcu.hex.SubSector subSector : sector.getAllSubSectors()) {
                 for (com.yisy.modules.doramcu.hex.GalacticEntry entry : subSector.getAllEntries()) {
                     com.yisy.modules.doramcu.hex.SolarSystem inMemorySystem = entry.getSystem();
@@ -464,7 +490,7 @@ public class GalaxyService {
                 dbMoon.setMineralYield(moon.getMineralYield());
                 dbMoon.setOutpostSlots(moon.getOutpostSlots());
                 if (moon.getStrategicResource() != null) {
-                    dbMoon.setStrategicDeposit(com.yisy.modules.doramcu.model.Moon.StrategicResource.valueOf(moon.getStrategicResource().name()));
+                    dbMoon.setStrategicDeposit(com.yisy.modules.doramcu.model.StrategicResource.valueOf(moon.getStrategicResource().name()));
                 }
                 moonRepository.save(dbMoon);
             }
@@ -483,7 +509,7 @@ public class GalaxyService {
                 dbBelt.setStationSlots(belt.getStationSlots());
                 dbBelt.setMovementPenalty(belt.getMovementPenalty());
                 if (belt.getStrategicResource() != null) {
-                    dbBelt.setStrategicDeposit(com.yisy.modules.doramcu.model.AsteroidBelt.StrategicResource.valueOf(belt.getStrategicResource().name()));
+                    dbBelt.setStrategicDeposit(com.yisy.modules.doramcu.model.StrategicResource.valueOf(belt.getStrategicResource().name()));
                 }
                 asteroidBeltRepository.save(dbBelt);
             }
@@ -556,7 +582,7 @@ public class GalaxyService {
                 dbComet.setRemainingTurns(comet.getRemainingTurns());
                 dbComet.setHarvested(comet.isHarvested());
                 if (comet.getStrategicResource() != null) {
-                    dbComet.setStrategicDeposit(com.yisy.modules.doramcu.model.Comet.StrategicResource.valueOf(comet.getStrategicResource().name()));
+                    dbComet.setStrategicDeposit(com.yisy.modules.doramcu.model.StrategicResource.valueOf(comet.getStrategicResource().name()));
                 }
                 cometRepository.save(dbComet);
             }
@@ -598,18 +624,18 @@ public class GalaxyService {
                 dbAsteroid.setOutpostSlots(asteroid.getOutpostSlots());
                 dbAsteroid.setMovementPenalty(asteroid.getMovementPenalty());
                 if (asteroid.getStrategicResource() != null) {
-                    dbAsteroid.setStrategicDeposit(com.yisy.modules.doramcu.model.Asteroid.StrategicResource.valueOf(asteroid.getStrategicResource().name()));
+                    dbAsteroid.setStrategicDeposit(com.yisy.modules.doramcu.model.StrategicResource.valueOf(asteroid.getStrategicResource().name()));
                 }
                 asteroidRepository.save(dbAsteroid);
             }
         }
     }
 
-    private Set<com.yisy.modules.doramcu.model.Planet.StrategicResource> convertStrategicDeposits(
+    private Set<com.yisy.modules.doramcu.model.StrategicResource> convertStrategicDeposits(
             Set<com.yisy.modules.doramcu.hex.StrategicResource> deposits) {
-        Set<com.yisy.modules.doramcu.model.Planet.StrategicResource> converted = new HashSet<>();
+        Set<com.yisy.modules.doramcu.model.StrategicResource> converted = new HashSet<>();
         for (com.yisy.modules.doramcu.hex.StrategicResource r : deposits) {
-            converted.add(com.yisy.modules.doramcu.model.Planet.StrategicResource.valueOf(r.name()));
+            converted.add(com.yisy.modules.doramcu.model.StrategicResource.valueOf(r.name()));
         }
         return converted;
     }
@@ -746,25 +772,6 @@ public class GalaxyService {
     }
 
     /**
-     * Generates and persists the test galaxy ("Test Galaxy") if it doesn't already exist.
-     * Uses the predefined configuration from {@link GalaxyFactory}.
-     *
-     * @return the saved database galaxy entity
-     */
-    @Transactional
-    public com.yisy.modules.doramcu.model.Galaxy ensureTestGalaxyExists() {
-        List<com.yisy.modules.doramcu.model.Galaxy> galaxies = getAllGalaxies();
-        for (com.yisy.modules.doramcu.model.Galaxy galaxy : galaxies) {
-            if (GalaxyFactory.TEST_GALAXY_NAME.equals(galaxy.getName())) {
-                return galaxy;
-            }
-        }
-        com.yisy.modules.doramcu.hex.Galaxy inMemoryGalaxy = GalaxyFactory.generateTestGalaxy();
-        return persistGalaxy(GalaxyFactory.TEST_GALAXY_NAME, inMemoryGalaxy,
-                GalaxyFactory.testGalaxyConfig().getHyperlaneDensity());
-    }
-
-    /**
      * Returns the game galaxy from the database, or generates it if it doesn't exist.
      *
      * @return the game galaxy entity
@@ -781,18 +788,28 @@ public class GalaxyService {
     }
 
     /**
-     * Returns the test galaxy from the database, or generates it if it doesn't exist.
+     * Finds a sector by galaxy ID and grid position.
      *
-     * @return the test galaxy entity
+     * @param galaxyId the galaxy ID
+     * @param sectorRow the sector row
+     * @param sectorCol the sector column
+     * @return the sector, or null if not found
      */
     @Transactional(readOnly = true)
-    public Optional<com.yisy.modules.doramcu.model.Galaxy> getTestGalaxy() {
-        List<com.yisy.modules.doramcu.model.Galaxy> galaxies = getAllGalaxies();
-        for (com.yisy.modules.doramcu.model.Galaxy galaxy : galaxies) {
-            if (GalaxyFactory.TEST_GALAXY_NAME.equals(galaxy.getName())) {
-                return Optional.of(galaxy);
-            }
-        }
-        return Optional.empty();
+    public com.yisy.modules.doramcu.model.Sector findSectorByGalaxyAndPosition(Long galaxyId, int sectorRow, int sectorCol) {
+        return sectorRepository.findByGalaxyIdAndSectorRowAndSectorCol(galaxyId, sectorRow, sectorCol);
+    }
+
+    /**
+     * Finds a subsector by sector ID and grid position.
+     *
+     * @param sectorId the sector ID
+     * @param subSectorRow the subsector row
+     * @param subSectorCol the subsector column
+     * @return the subsector, or null if not found
+     */
+    @Transactional(readOnly = true)
+    public com.yisy.modules.doramcu.model.SubSector findSubSectorBySectorAndPosition(Long sectorId, int subSectorRow, int subSectorCol) {
+        return subSectorRepository.findBySectorIdAndSubSectorRowAndSubSectorCol(sectorId, subSectorRow, subSectorCol);
     }
 }

@@ -6,16 +6,24 @@ import com.yisy.modules.doramcu.dto.MoveFleetRequest;
 import com.yisy.modules.doramcu.hex.*;
 import com.yisy.modules.doramcu.hex.Player;
 import com.yisy.modules.doramcu.model.GameSession;
+import com.yisy.modules.doramcu.repository.GalaxyRepository;
 import com.yisy.modules.doramcu.repository.PersistedGameSessionRepository;
 import com.yisy.modules.doramcu.repository.SolarSystemRepository;
+import com.yisy.modules.doramcu.service.GameStateBuilder;
+import com.yisy.modules.doramcu.unified.GameType;
+import com.yisy.modules.doramcu.unified.GlobalClock;
+import com.yisy.modules.doramcu.unified.GlobalClockService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Nested;
 
+import java.util.ArrayList;
 import java.util.NoSuchElementException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -25,6 +33,7 @@ class GameSessionServiceTest {
 
     private SolarSystemRepository solarSystemRepository;
     private PersistedGameSessionRepository persistedGameSessionRepository;
+    private GalaxyRepository galaxyRepository;
     private TurnScheduler turnScheduler;
     private GameSessionService gameSessionService;
 
@@ -32,14 +41,37 @@ class GameSessionServiceTest {
     void setUp() {
         solarSystemRepository = null;
         persistedGameSessionRepository = null;
+        galaxyRepository = mock(GalaxyRepository.class);
+        when(galaxyRepository.findAll()).thenReturn(new ArrayList<>());
         turnScheduler = mock(TurnScheduler.class);
         when(turnScheduler.getTurnIntervalSeconds()).thenReturn(5L);
         when(turnScheduler.getAccumulatedSeconds(anyString())).thenReturn(0L);
         when(turnScheduler.isEnabled()).thenReturn(true);
+        GameStateBuilder gameStateBuilder = mock(GameStateBuilder.class);
+        when(gameStateBuilder.buildPlayerSummaries(any(), any())).thenReturn(new ArrayList<>());
+        when(gameStateBuilder.buildSubSectorInfo(any(), anyBoolean())).thenReturn(new ArrayList<>());
+        when(gameStateBuilder.buildActiveBattles(any())).thenReturn(new ArrayList<>());
+        when(gameStateBuilder.buildGameStateResponse(any(), any(), anyBoolean())).thenAnswer(invocation -> {
+            com.yisy.modules.doramcu.dto.GameStateResponse resp = new com.yisy.modules.doramcu.dto.GameStateResponse();
+            resp.setSubSectors(new ArrayList<>());
+            return resp;
+        });
+        SessionActionHandler sessionActionHandler = new SessionActionHandler(gameStateBuilder, null, null);
+        GlobalClockService globalClockService = mock(GlobalClockService.class);
+        when(globalClockService.getOrCreateClock(anyString(), any())).thenAnswer(invocation -> {
+            String sessionId = invocation.getArgument(0);
+            return GlobalClock.forGameType(GameType.DORAMCU_4X);
+        });
         gameSessionService = new GameSessionService(
-                solarSystemRepository,
                 persistedGameSessionRepository,
-                turnScheduler
+                galaxyRepository,
+                null,
+                turnScheduler,
+                gameStateBuilder,
+                null,
+                null,
+                sessionActionHandler,
+                globalClockService
         );
     }
 
@@ -71,7 +103,7 @@ class GameSessionServiceTest {
             GameSession session = gameSessionService.getGameSession(sessionId);
             assertNotNull(session);
 
-            Game game = session.getGame();
+            Game game = (Game) session.getGame();
             Player player = game.getPlayer(100);
             assertNotNull(player);
             // Empire ID should be 1 (from counter), not 100 (player ID)
@@ -86,7 +118,7 @@ class GameSessionServiceTest {
                     100L, "Human Player", "Test Session").getSessionId();
 
             GameSession session = gameSessionService.getGameSession(sessionId);
-            Game game = session.getGame();
+            Game game = (Game) session.getGame();
             Player player = game.getPlayer(100);
 
             assertNotNull(player);
@@ -110,7 +142,7 @@ class GameSessionServiceTest {
                     100L, "Human Player", "Test Session").getSessionId();
 
             GameSession session = gameSessionService.getGameSession(sessionId);
-            Game game = session.getGame();
+            Game game = (Game) session.getGame();
 
             assertEquals(1, game.getPlayerCount());
             Player player = game.getPlayer(100);
@@ -150,7 +182,7 @@ class GameSessionServiceTest {
             gameSessionService.joinSession(200L, "Joining Player", sessionId);
 
             GameSession session = gameSessionService.getGameSession(sessionId);
-            Game game = session.getGame();
+            Game game = (Game) session.getGame();
             Player player = game.getPlayer(200);
 
             assertNotNull(player);
@@ -165,7 +197,7 @@ class GameSessionServiceTest {
             gameSessionService.joinSession(200L, "Joining Player", sessionId);
 
             GameSession session = gameSessionService.getGameSession(sessionId);
-            Game game = session.getGame();
+            Game game = (Game) session.getGame();
             Player player = game.getPlayer(200);
 
             assertNotNull(player);
@@ -203,7 +235,7 @@ class GameSessionServiceTest {
             gameSessionService.joinSession(200L, "Joining Player", sessionId);
 
             GameSession session = gameSessionService.getGameSession(sessionId);
-            Game game = session.getGame();
+            Game game = (Game) session.getGame();
 
             assertEquals(1, game.getPlayerCount());
             Player player = game.getPlayer(200);
@@ -228,7 +260,7 @@ class GameSessionServiceTest {
             gameSessionService.joinSession(202L, "Player Three", sessionId);
 
             GameSession session = gameSessionService.getGameSession(sessionId);
-            Game game = session.getGame();
+            Game game = (Game) session.getGame();
 
             Player player1 = game.getPlayer(200);
             Player player2 = game.getPlayer(201);
@@ -257,7 +289,7 @@ class GameSessionServiceTest {
             gameSessionService.joinSession(2000L, "Player B", sessionId);
 
             GameSession session = gameSessionService.getGameSession(sessionId);
-            Game game = session.getGame();
+            Game game = (Game) session.getGame();
 
             Player playerA = game.getPlayer(1000);
             Player playerB = game.getPlayer(2000);
@@ -281,7 +313,7 @@ class GameSessionServiceTest {
             gameSessionService.joinSession(201L, "Player Two", sessionId);
 
             GameSession session = gameSessionService.getGameSession(sessionId);
-            Game game = session.getGame();
+            Game game = (Game) session.getGame();
 
             Player player1 = game.getPlayer(200);
             Player player2 = game.getPlayer(201);
@@ -307,7 +339,7 @@ class GameSessionServiceTest {
             gameSessionService.joinSession(200L, "Joiner", sessionId);
 
             GameSession session = gameSessionService.getGameSession(sessionId);
-            Game game = session.getGame();
+            Game game = (Game) session.getGame();
 
             Player creator = game.getPlayer(100);
             Player joiner = game.getPlayer(200);
@@ -343,7 +375,7 @@ class GameSessionServiceTest {
             String sessionId = gameSessionService.createDefaultSession("AI Session").getSessionId();
 
             GameSession session = gameSessionService.getGameSession(sessionId);
-            Game game = session.getGame();
+            Game game = (Game) session.getGame();
 
             assertEquals(0, game.getPlayerCount());
         }
@@ -359,7 +391,7 @@ class GameSessionServiceTest {
             gameSessionService.joinSession(1002L, "AI Hard", sessionId);
 
             GameSession session = gameSessionService.getGameSession(sessionId);
-            Game game = session.getGame();
+            Game game = (Game) session.getGame();
 
             assertEquals(3, game.getPlayerCount());
             assertEquals(3, session.getPlayerIds().size());
@@ -382,7 +414,7 @@ class GameSessionServiceTest {
             // Create session with one player
             sessionId = gameSessionService.createSession(100L, "Test Player", "Move Test").getSessionId();
             GameSession session = gameSessionService.getGameSession(sessionId);
-            game = session.getGame();
+            game = (Game) session.getGame();
             player = game.getPlayer(100);
 
             // Create a fleet with a frigate and position it
@@ -398,7 +430,7 @@ class GameSessionServiceTest {
         @DisplayName("should move fleet within system using MDrive")
         void moveFleet_mDrive_shouldSucceed() {
             // Target (1, -1, 0) — distance 1 from origin
-            MoveFleetRequest request = new MoveFleetRequest(1, 1, -1, null);
+            MoveFleetRequest request = new MoveFleetRequest(fleet.getId(), 1, -1, null);
 
             gameSessionService.moveFleet(100L, sessionId, request);
 
@@ -412,7 +444,7 @@ class GameSessionServiceTest {
         void moveFleet_mDrive_withinRange_shouldSucceed() {
             // Frigate MDrive speed is 10, so distance 10 should be allowed
             // Target (10, -10, 0) — distance 10 from origin
-            MoveFleetRequest request = new MoveFleetRequest(1, 10, -10, null);
+            MoveFleetRequest request = new MoveFleetRequest(fleet.getId(), 10, -10, null);
 
             gameSessionService.moveFleet(100L, sessionId, request);
 
@@ -425,7 +457,7 @@ class GameSessionServiceTest {
         void moveFleet_mDrive_exceedsRange_shouldThrow() {
             // Frigate MDrive speed is 10, distance 11 should fail
             // Target (11, -11, 0) — distance 11 from origin
-            MoveFleetRequest request = new MoveFleetRequest(1, 11, -11, null);
+            MoveFleetRequest request = new MoveFleetRequest(fleet.getId(), 11, -11, null);
 
             IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
                     gameSessionService.moveFleet(100L, sessionId, request));
@@ -447,7 +479,7 @@ class GameSessionServiceTest {
             secondFleet.setPosition(new Hex3D(0, 0, 0));
 
             // Player 100 tries to move player 200's fleet
-            MoveFleetRequest request = new MoveFleetRequest(2, 1, -1, null);
+            MoveFleetRequest request = new MoveFleetRequest(secondFleet.getId(), 1, -1, null);
 
             IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
                     gameSessionService.moveFleet(100L, sessionId, request));
@@ -463,7 +495,7 @@ class GameSessionServiceTest {
 
             // Refresh references
             GameSession session = gameSessionService.getGameSession(sessionId);
-            Game refreshedGame = session.getGame();
+            Game refreshedGame = (Game) session.getGame();
 
             // Create fleet for player 200
             Fleet fleet2 = refreshedGame.createFleet("Fleet 2", refreshedGame.getPlayer(200));
@@ -474,7 +506,7 @@ class GameSessionServiceTest {
             fleet2.setPosition(new Hex3D(0, 0, 0));
 
             // Player 200 can move their fleet at any time (simultaneous turns)
-            MoveFleetRequest request = new MoveFleetRequest(2, 1, -1, null);
+            MoveFleetRequest request = new MoveFleetRequest(fleet2.getId(), 1, -1, null);
             gameSessionService.moveFleet(200L, sessionId, request);
 
             Hex3D newPos = fleet2.getPosition();
@@ -494,7 +526,7 @@ class GameSessionServiceTest {
         @Test
         @DisplayName("should allow zero-distance move (same position)")
         void moveFleet_mDrive_samePosition_shouldSucceed() {
-            MoveFleetRequest request = new MoveFleetRequest(1, 0, 0, null);
+            MoveFleetRequest request = new MoveFleetRequest(fleet.getId(), 0, 0, null);
 
             gameSessionService.moveFleet(100L, sessionId, request);
 
@@ -513,7 +545,7 @@ class GameSessionServiceTest {
             // Frigate base MDrive 10 + bonus 4 = 14 range
             // Target (14, -14, 0) — distance 14 from origin
 
-            MoveFleetRequest request = new MoveFleetRequest(1, 14, -14, null);
+            MoveFleetRequest request = new MoveFleetRequest(fleet.getId(), 14, -14, null);
 
             gameSessionService.moveFleet(100L, sessionId, request);
 
@@ -530,7 +562,7 @@ class GameSessionServiceTest {
             // Effective MDrive: base 10 * 0.5 = 5 (rounded)
             // Target (6, -6, 0) — distance 6 from origin, exceeds reduced range
 
-            MoveFleetRequest request = new MoveFleetRequest(1, 6, -6, null);
+            MoveFleetRequest request = new MoveFleetRequest(fleet.getId(), 6, -6, null);
 
             IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
                     gameSessionService.moveFleet(100L, sessionId, request));
@@ -549,7 +581,7 @@ class GameSessionServiceTest {
             // Fleet MDrive speed is the slowest ship: min(10, 8) = 8
             // Target (8, -8, 0) — distance 8 from origin
 
-            MoveFleetRequest request = new MoveFleetRequest(1, 8, -8, null);
+            MoveFleetRequest request = new MoveFleetRequest(fleet.getId(), 8, -8, null);
 
             gameSessionService.moveFleet(100L, sessionId, request);
 
@@ -565,7 +597,7 @@ class GameSessionServiceTest {
 
             // Refresh references after join
             GameSession session = gameSessionService.getGameSession(sessionId);
-            Game refreshedGame = session.getGame();
+            Game refreshedGame = (Game) session.getGame();
 
             // Create fleet for player 200
             Fleet fleet2 = refreshedGame.createFleet("Fleet 2", refreshedGame.getPlayer(200));
@@ -576,7 +608,7 @@ class GameSessionServiceTest {
             fleet2.setPosition(new Hex3D(0, 0, 0));
 
             // Both players can move simultaneously
-            MoveFleetRequest requestForPlayer200 = new MoveFleetRequest(2, 1, -1, null);
+            MoveFleetRequest requestForPlayer200 = new MoveFleetRequest(fleet2.getId(), 1, -1, null);
             gameSessionService.moveFleet(200L, sessionId, requestForPlayer200);
 
             Hex3D newPos = fleet2.getPosition();
@@ -586,7 +618,7 @@ class GameSessionServiceTest {
         @Test
         @DisplayName("should return GameStateResponse after successful move")
         void moveFleet_mDrive_shouldReturnGameStateResponse() {
-            MoveFleetRequest request = new MoveFleetRequest(1, 1, -1, null);
+            MoveFleetRequest request = new MoveFleetRequest(fleet.getId(), 1, -1, null);
 
             var response = gameSessionService.moveFleet(100L, sessionId, request);
 
@@ -612,7 +644,7 @@ class GameSessionServiceTest {
             // Create session with one player
             sessionId = gameSessionService.createSession(100L, "Test Player", "Move Test").getSessionId();
             GameSession session = gameSessionService.getGameSession(sessionId);
-            game = session.getGame();
+            game = (Game) session.getGame();
             player = game.getPlayer(100);
 
             // Create a fleet with a frigate
@@ -637,7 +669,7 @@ class GameSessionServiceTest {
         @Test
         @DisplayName("should jump fleet to another system using JDrive")
         void moveFleet_jDrive_shouldSucceed() {
-            MoveFleetRequest request = new MoveFleetRequest(1, 0, 0, 2);
+            MoveFleetRequest request = new MoveFleetRequest(fleet.getId(), 0, 0, 2);
 
             gameSessionService.moveFleet(100L, sessionId, request);
 
@@ -649,7 +681,7 @@ class GameSessionServiceTest {
         @Test
         @DisplayName("should throw when target system does not exist")
         void moveFleet_jDrive_nonExistentSystem_shouldThrow() {
-            MoveFleetRequest request = new MoveFleetRequest(1, 0, 0, 999);
+            MoveFleetRequest request = new MoveFleetRequest(fleet.getId(), 0, 0, 999);
 
             IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
                     gameSessionService.moveFleet(100L, sessionId, request));
@@ -664,7 +696,7 @@ class GameSessionServiceTest {
             Ship frigate = (Ship) fleet.getShips().iterator().next();
             frigate.takeDamage(45); // 50 - 45 = 5 (10% health, below 20% threshold)
 
-            MoveFleetRequest request = new MoveFleetRequest(1, 0, 0, 2);
+            MoveFleetRequest request = new MoveFleetRequest(fleet.getId(), 0, 0, 2);
 
             IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
                     gameSessionService.moveFleet(100L, sessionId, request));
@@ -678,7 +710,7 @@ class GameSessionServiceTest {
             // Create a fresh session without a hyperlane
             String noHyperlaneSession = gameSessionService.createSession(300L, "No Hyperlane Player", "No Hyperlane Test").getSessionId();
             GameSession session = gameSessionService.getGameSession(noHyperlaneSession);
-            Game noHyperlaneGame = session.getGame();
+            Game noHyperlaneGame = (Game) session.getGame();
             Player noHyperlanePlayer = noHyperlaneGame.getPlayer(300);
 
             Fleet noHyperlaneFleet = noHyperlaneGame.createFleet("No Hyperlane Fleet", noHyperlanePlayer);
@@ -698,7 +730,7 @@ class GameSessionServiceTest {
             // Intentionally not adding any hyperlane
             noHyperlaneGame.addGalaxy(galaxy);
 
-            MoveFleetRequest request = new MoveFleetRequest(1, 0, 0, 2);
+            MoveFleetRequest request = new MoveFleetRequest(noHyperlaneFleet.getId(), 0, 0, 2);
 
             IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
                     gameSessionService.moveFleet(300L, noHyperlaneSession, request));
@@ -713,7 +745,7 @@ class GameSessionServiceTest {
             Ship frigate = (Ship) fleet.getShips().iterator().next();
             frigate.takeDamage(40); // 50 - 40 = 10 (20% health, at threshold)
 
-            MoveFleetRequest request = new MoveFleetRequest(1, 0, 0, 2);
+            MoveFleetRequest request = new MoveFleetRequest(fleet.getId(), 0, 0, 2);
 
             // Should not throw
             gameSessionService.moveFleet(100L, sessionId, request);
@@ -726,7 +758,7 @@ class GameSessionServiceTest {
             Ship frigate = (Ship) fleet.getShips().iterator().next();
             frigate.takeDamage(35); // 50 - 35 = 15 (30% health, above threshold)
 
-            MoveFleetRequest request = new MoveFleetRequest(1, 0, 0, 2);
+            MoveFleetRequest request = new MoveFleetRequest(fleet.getId(), 0, 0, 2);
 
             gameSessionService.moveFleet(100L, sessionId, request);
         }
@@ -734,7 +766,7 @@ class GameSessionServiceTest {
         @Test
         @DisplayName("should throw when jumping to non-existent session")
         void moveFleet_jDrive_sessionNotFound_shouldThrow() {
-            MoveFleetRequest request = new MoveFleetRequest(1, 0, 0, 2);
+            MoveFleetRequest request = new MoveFleetRequest(fleet.getId(), 0, 0, 2);
 
             assertThrows(NoSuchElementException.class, () ->
                     gameSessionService.moveFleet(100L, "non-existent", request));
@@ -749,7 +781,7 @@ class GameSessionServiceTest {
             game.addShip(destroyer);
             fleet.addShip(destroyer);
 
-            MoveFleetRequest request = new MoveFleetRequest(1, 0, 0, 2);
+            MoveFleetRequest request = new MoveFleetRequest(fleet.getId(), 0, 0, 2);
 
             gameSessionService.moveFleet(100L, sessionId, request);
         }
@@ -761,7 +793,7 @@ class GameSessionServiceTest {
             Ship frigate = (Ship) fleet.getShips().iterator().next();
             frigate.takeDamage(50); // 50 - 50 = 0 (0% health, destroyed)
 
-            MoveFleetRequest request = new MoveFleetRequest(1, 0, 0, 2);
+            MoveFleetRequest request = new MoveFleetRequest(fleet.getId(), 0, 0, 2);
 
             IllegalStateException ex = assertThrows(IllegalStateException.class, () ->
                     gameSessionService.moveFleet(100L, sessionId, request));
@@ -779,7 +811,7 @@ class GameSessionServiceTest {
             galaxy.addHyperlane(1, 3, 8);
 
             // Jump to system 3 (hyperlane connects system 1 -> 3)
-            MoveFleetRequest request = new MoveFleetRequest(1, 0, 0, 3);
+            MoveFleetRequest request = new MoveFleetRequest(fleet.getId(), 0, 0, 3);
 
             gameSessionService.moveFleet(100L, sessionId, request);
         }
@@ -787,7 +819,7 @@ class GameSessionServiceTest {
         @Test
         @DisplayName("should return GameStateResponse after successful JDrive jump")
         void moveFleet_jDrive_shouldReturnGameStateResponse() {
-            MoveFleetRequest request = new MoveFleetRequest(1, 0, 0, 2);
+            MoveFleetRequest request = new MoveFleetRequest(fleet.getId(), 0, 0, 2);
 
             var response = gameSessionService.moveFleet(100L, sessionId, request);
 

@@ -3,6 +3,7 @@ package com.yisy.modules.doradl.network;
 import com.yisy.modules.doradl.config.DlConfig;
 import com.yisy.modules.doradl.model.ActionReward;
 import com.yisy.modules.doradl.model.GameStateFeatures;
+import com.yisy.modules.doradl.monitor.MemoryMonitor;
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
 import org.deeplearning4j.nn.conf.layers.DenseLayer;
@@ -17,6 +18,7 @@ import org.nd4j.linalg.indexing.NDArrayIndex;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -27,13 +29,18 @@ import java.util.List;
  * Builds, trains, and manages the strategy neural network using Deeplearning4j.
  * The network predicts the best action given a game state feature vector.
  * <p>
- * Network architecture: 64 → 128 → 256 → 128 → 17
- * - Input: 64-dimensional feature vector (32 original + 32 empire-specific)
- * - Hidden layers: 128, 256, 128 neurons with ReLU
- * - Output: 17 action probabilities with Softmax (strategic, tactical, economic, defensive)
+ * This is the local DL4J implementation. When dl.rest-client.enabled=true,
+ * the Python microservice handles all neural network operations.
+ * </p>
+ * <p>
+ * Network architecture: 32 → 64 → 128 → 64 → 5 (configurable via DlConfig)
+ * - Input: 32-dimensional feature vector representing game state
+ * - Hidden layers: 64, 128, 64 neurons with ReLU
+ * - Output: 5 action probabilities with Softmax
  * </p>
  */
 @Component
+@ConditionalOnProperty(name = "dl.rest-client.enabled", havingValue = "false", matchIfMissing = true)
 public class StrategyNetwork {
 
     private static final Logger log = LoggerFactory.getLogger(StrategyNetwork.class);
@@ -136,10 +143,24 @@ public class StrategyNetwork {
 
     /**
      * Trains the network on a list of action-reward pairs.
+     * Uses batched training with explicit memory management to avoid OOM errors.
      *
      * @param trainingData list of game states, actions, and rewards
      */
     public void train(List<ActionReward> trainingData) {
+        train(trainingData, null);
+    }
+
+    /**
+     * Trains the network on a list of action-reward pairs with memory monitoring.
+     * Uses batched training with explicit memory management to avoid OOM errors.
+     * When a MemoryMonitor is provided, adjusts batch size based on memory pressure
+     * and checks memory before each batch.
+     *
+     * @param trainingData list of game states, actions, and rewards
+     * @param memoryMonitor optional memory monitor for adaptive batch sizing
+     */
+    public void train(List<ActionReward> trainingData, MemoryMonitor memoryMonitor) {
         if (!initialized) {
             initialize();
         }
@@ -150,23 +171,61 @@ public class StrategyNetwork {
         }
 
         int numSamples = trainingData.size();
-        INDArray input = Nd4j.create(numSamples, config.getInputSize());
-        INDArray labels = Nd4j.create(numSamples, config.getOutputSize());
+        int batchSize = Math.min(config.getBatchSize(), numSamples);
+
+        // Adjust batch size based on memory pressure
+        if (memoryMonitor != null) {
+            batchSize = memoryMonitor.suggestBatchSize(batchSize);
+            log.debug("Memory-aware batch size: {} (original: {})", batchSize, config.getBatchSize());
+        }
+
+        // Build full input/label arrays once
+        INDArray allInput = Nd4j.create(numSamples, config.getInputSize());
+        INDArray allLabels = Nd4j.create(numSamples, config.getOutputSize());
 
         for (int i = 0; i < numSamples; i++) {
             ActionReward sample = trainingData.get(i);
             double[] features = sample.getState().getFeatures();
             for (int j = 0; j < config.getInputSize(); j++) {
-                input.putScalar(i, j, features[j]);
+                allInput.putScalar(i, j, features[j]);
             }
             double[] oneHot = sample.toOneHot();
             for (int j = 0; j < config.getOutputSize(); j++) {
-                labels.putScalar(i, j, oneHot[j]);
+                allLabels.putScalar(i, j, oneHot[j]);
             }
         }
 
-        network.fit(input, labels);
-        log.info("Trained network on {} samples", numSamples);
+        // Train in batches to reduce memory pressure
+        int batchesTrained = 0;
+        for (int offset = 0; offset < numSamples; offset += batchSize) {
+            // Check memory before each batch
+            if (memoryMonitor != null && !memoryMonitor.isTrainingSafe()) {
+                log.warn("Memory critical at batch {}/{} — stopping training early to avoid OOM",
+                        batchesTrained + 1, (numSamples + batchSize - 1) / batchSize);
+                break;
+            }
+
+            int end = Math.min(offset + batchSize, numSamples);
+
+            INDArray batchInput = allInput.get(NDArrayIndex.interval(offset, end - 1));
+            INDArray batchLabels = allLabels.get(NDArrayIndex.interval(offset, end - 1));
+
+            try {
+                network.fit(batchInput, batchLabels);
+                batchesTrained++;
+            } finally {
+                // Explicitly release batch memory after each batch
+                batchInput.close();
+                batchLabels.close();
+            }
+        }
+
+        // Clear full arrays after training completes
+        allInput.close();
+        allLabels.close();
+
+        log.info("Trained network on {} samples in {} batches (batch size: {})",
+                numSamples, batchesTrained, batchSize);
     }
 
     /**

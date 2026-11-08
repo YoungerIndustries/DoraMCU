@@ -139,7 +139,7 @@ public class DataInitializer {
      * and persisted before game sessions are created.
      */
     @Bean
-    @ConditionalOnProperty(name = "doramcu.galaxy.auto-generate", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(name = "doramcu.galaxy.auto-generate", havingValue = "true", matchIfMissing = false)
     CommandLineRunner initGalaxyFirst(GalaxyService galaxyService,
                                        GalaxyProgressService galaxyProgressService,
                                        PlayerRepository playerRepository) {
@@ -154,7 +154,7 @@ public class DataInitializer {
             if (!galaxyService.hasGalaxy(GalaxyFactory.GAME_GALAXY_NAME)) {
                 log.info("Galaxy '{}' not found. Starting synchronous generation...", GalaxyFactory.GAME_GALAXY_NAME);
 
-                Map<Integer, Empire> empires = buildAiEmpires(players, null);
+                Map<Integer, Empire> empires = buildAiEmpires(players);
                 for (Empire e : empires.values()) {
                     log.info("Created AI-controlled empire: {} (id={}, ruler=AI)", e.getName(), e.getId());
                 }
@@ -180,32 +180,10 @@ public class DataInitializer {
                 log.info("Galaxy '{}' already exists in database. Skipping generation.", GalaxyFactory.GAME_GALAXY_NAME);
             }
 
-            // Generate Test Galaxy only if it doesn't already exist
-            if (!galaxyService.hasGalaxy(GalaxyFactory.TEST_GALAXY_NAME)) {
-                log.info("Galaxy '{}' not found. Starting synchronous generation...", GalaxyFactory.TEST_GALAXY_NAME);
+            // Signal galaxy ready to all connected SSE clients so the frontend modal closes
+            galaxyProgressService.finishAll();
+            log.info("Galaxy ready signal broadcast to connected clients");
 
-                Map<Integer, Empire> testEmpires = buildAiEmpires(players, " (Test)");
-
-                galaxyService.generateAndSaveGalaxyWithEmpires(
-                        GalaxyFactory.TEST_GALAXY_NAME,
-                        testEmpires,
-                        GalaxyFactory.testGalaxyConfig().getSystemCount(),
-                        GalaxyFactory.testGalaxyConfig().getPlanetsPerSystem(),
-                        GalaxyFactory.testGalaxyConfig().getMoonChance(),
-                        GalaxyFactory.testGalaxyConfig().getAsteroidBeltChance(),
-                        GalaxyFactory.testGalaxyConfig().getGasGiantChance(),
-                        GalaxyFactory.testGalaxyConfig().getNebulaChance(),
-                        GalaxyFactory.testGalaxyConfig().getBlackHoleChance(),
-                        GalaxyFactory.testGalaxyConfig().getCometChance(),
-                        GalaxyFactory.testGalaxyConfig().getSpaceStationChance(),
-                        GalaxyFactory.testGalaxyConfig().getHyperlaneDensity(),
-                        GalaxyFactory.TEST_GALAXY_SEED
-                );
-                log.info("Galaxy '{}' generated with {} AI-controlled empires and persisted at startup",
-                        GalaxyFactory.TEST_GALAXY_NAME, players.size());
-            } else {
-                log.info("Galaxy '{}' already exists in database. Skipping generation.", GalaxyFactory.TEST_GALAXY_NAME);
-            }
         };
     }
 
@@ -213,15 +191,13 @@ public class DataInitializer {
      * Builds a map of AI-controlled Empire instances from the given players.
      *
      * @param players the list of players
-     * @param suffix  optional suffix appended to empire names (e.g., " (Test)"), or null
      * @return map of empire ID to Empire instance
      */
-    private static Map<Integer, Empire> buildAiEmpires(java.util.List<Player> players, String suffix) {
+    private static Map<Integer, Empire> buildAiEmpires(java.util.List<Player> players) {
         Map<Integer, Empire> empires = new HashMap<>();
         for (Player player : players) {
             int empireId = player.getId().intValue();
-            String empireName = suffix != null ? player.getEmpireName() + suffix : player.getEmpireName();
-            Empire empire = new Empire(empireId, empireName, -1);
+            Empire empire = new Empire(empireId, player.getEmpireName(), -1);
             empires.put(empireId, empire);
         }
         return empires;
@@ -233,7 +209,7 @@ public class DataInitializer {
      * galaxy creation → session creation → 3 AI players → ready for human players to join.
      */
     @Bean
-    @ConditionalOnProperty(name = "doramcu.galaxy.auto-generate", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(name = "doramcu.galaxy.auto-generate", havingValue = "true", matchIfMissing = false)
     CommandLineRunner initGameSessionAfterGalaxy(GalaxyCreationService galaxyCreationService,
                                                   GameSessionService gameSessionService) {
         return args -> {

@@ -1,5 +1,7 @@
 package com.yisy.modules.doramcu.hex;
 
+import com.yisy.modules.doramcu.traveller.SectorGenerator;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -38,6 +40,9 @@ public class GalaxyGenerator {
     // Generation configuration
     private GalaxyGenerationConfig config;
 
+    // Traveller integration — enables UWP-based planet generation
+    private boolean useTravellerUWP = false;
+
     /**
      * Creates a new generator with default parameters and seed 42.
      */
@@ -64,8 +69,25 @@ public class GalaxyGenerator {
      */
     private void initializeComponents() {
         this.bodyGenerator = new CelestialBodyGenerator(random, starNames, planetNames);
+        if (useTravellerUWP) {
+            bodyGenerator.setSectorGenerator(new SectorGenerator(random));
+        }
         this.systemGenerator = new SolarSystemGenerator(random, bodyGenerator, config, progressListener);
+        this.systemGenerator.setUseTravellerUWP(useTravellerUWP);
         this.hyperlaneGenerator = new HyperlaneGenerator(random);
+    }
+
+    /**
+     * Enables or disables Traveller UWP-based planet generation.
+     * <p>
+     * When enabled, planets generated during galaxy creation will have
+     * Universal World Profile data and trade codes from the Traveller system.
+     * </p>
+     *
+     * @param useTravellerUWP true to enable UWP generation
+     */
+    public void setUseTravellerUWP(boolean useTravellerUWP) {
+        this.useTravellerUWP = useTravellerUWP;
     }
 
     // ---- Configuration ----
@@ -81,6 +103,7 @@ public class GalaxyGenerator {
         }
         this.config = config;
         this.systemGenerator = new SolarSystemGenerator(random, bodyGenerator, config, progressListener);
+        this.systemGenerator.setUseTravellerUWP(useTravellerUWP);
     }
 
     // ---- Main Generation Methods ----
@@ -135,6 +158,10 @@ public class GalaxyGenerator {
                 totalSystems += generated;
                 for (SolarSystem system : sector.getAllSystems().values()) {
                     galaxy.getAllSystemsMap().put(system.getId(), system);
+                }
+                // Report cumulative progress after each sector
+                if (progressListener != null) {
+                    progressListener.onSystemGenerated(totalSystems, totalTargetSystems);
                 }
             }
         }

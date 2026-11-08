@@ -9,11 +9,11 @@ import static org.junit.jupiter.api.Assertions.*;
 class WeaponTypeTest {
 
     @Test
-    @DisplayName("values - should have 3 weapon types")
+    @DisplayName("values - should have 7 weapon types")
     void values_shouldHaveThreeTypes() {
         WeaponType[] types = WeaponType.values();
 
-        assertEquals(3, types.length);
+        assertEquals(7, types.length);
     }
 
     @Test

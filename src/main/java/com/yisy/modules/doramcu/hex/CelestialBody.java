@@ -27,6 +27,7 @@ public abstract class CelestialBody {
     protected String name;
     protected boolean hasStrategicDeposit;
     protected StrategicResource strategicResource;
+    protected boolean hexGeometryGenerated = false;  // Lazy generation flag
 
     /**
      * Creates a new celestial body with the given ID and radius.
@@ -58,11 +59,24 @@ public abstract class CelestialBody {
 
     /**
      * Generates the 3D hex sphere for this celestial body.
-     * Called by subclasses after construction to populate the map.
+     * Called lazily — hex geometry is only generated when actually needed.
+     * For strategic views (galaxy map, sector cards), this is skipped entirely.
      */
     protected void generate() {
+        if (hexGeometryGenerated) return;
         Hex3D center = new Hex3D(0, 0, 0);
         map.generateRange(center, radius);
+        hexGeometryGenerated = true;
+    }
+
+    /**
+     * Forces generation of hex geometry if not already generated.
+     * Use this when tactical operations require the full hex map.
+     */
+    public void ensureGeometryGenerated() {
+        if (!hexGeometryGenerated) {
+            generate();
+        }
     }
 
     // ---- Accessors ----
@@ -101,13 +115,22 @@ public abstract class CelestialBody {
      * @return the total number of hex cells in this celestial body
      */
     public int size() {
+        ensureGeometryGenerated();
         return map.size();
     }
 
     /**
-     * @return the internal 3D hex map
+     * @return true if hex geometry has been generated for this body
+     */
+    public boolean isHexGeometryGenerated() {
+        return hexGeometryGenerated;
+    }
+
+    /**
+     * @return the internal 3D hex map (triggers lazy generation if needed)
      */
     public Hex3DMap getMap() {
+        ensureGeometryGenerated();
         return map;
     }
 

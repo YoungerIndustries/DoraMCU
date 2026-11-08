@@ -5,44 +5,50 @@ import com.yisy.modules.doramcu.hex.Game;
 import com.yisy.modules.doramcu.hex.Player;
 import com.yisy.modules.doramcu.hex.SpaceStation;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Context object passed to AI decision methods to provide the current game state.
+ * Context object that provides the AI with the information it needs to make a decision.
  * <p>
- * This class encapsulates all the information an AI core needs to make a decision,
- * including the owning player, the game state, and any tactical information about
- * fleets and enemies.
+ * Includes owned and enemy fleets, resource counts, and references to the player
+ * and game state.
  * </p>
  */
 public class AiDecisionContext {
 
     private final Player player;
     private final Game game;
-    private final int currentTurn;
     private final List<Fleet> ownedFleets;
     private final List<Fleet> enemyFleets;
-    private final List<SpaceStation> stations;
     private final int minerals;
     private final int energy;
     private final int food;
     private final int credits;
+    private final List<SpaceStation> stations;
+    private final Map<String, Integer> resources;
 
     private AiDecisionContext(Builder builder) {
         this.player = builder.player;
         this.game = builder.game;
-        this.currentTurn = builder.currentTurn;
         this.ownedFleets = builder.ownedFleets;
         this.enemyFleets = builder.enemyFleets;
-        this.stations = builder.stations;
         this.minerals = builder.minerals;
         this.energy = builder.energy;
         this.food = builder.food;
         this.credits = builder.credits;
+        this.stations = builder.stations != null ? builder.stations : List.of();
+        this.resources = builder.resources != null ? builder.resources : Map.of();
     }
+
+    /**
+     * Returns a builder for creating an AiDecisionContext.
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    // --- Accessors ---
 
     public Player getPlayer() {
         return player;
@@ -50,10 +56,6 @@ public class AiDecisionContext {
 
     public Game getGame() {
         return game;
-    }
-
-    public int getCurrentTurn() {
-        return currentTurn;
     }
 
     public List<Fleet> getOwnedFleets() {
@@ -80,50 +82,28 @@ public class AiDecisionContext {
         return credits;
     }
 
-    /**
-     * Returns the list of space stations owned by the player.
-     *
-     * @return list of space stations, or empty list if none
-     */
     public List<SpaceStation> getStations() {
         return stations;
     }
 
-    /**
-     * Returns all resources as a map for compatibility with EmpireFeatureExtractor.
-     *
-     * @return unmodifiable map of resource name to value
-     */
     public Map<String, Integer> getResources() {
-        Map<String, Integer> map = new HashMap<>();
-        map.put("minerals", minerals);
-        map.put("energy", energy);
-        map.put("food", food);
-        map.put("credits", credits);
-        return Collections.unmodifiableMap(map);
+        return resources;
     }
 
     /**
-     * Creates a new builder for AiDecisionContext.
-     */
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    /**
-     * Builder for AiDecisionContext.
+     * Builder for {@link AiDecisionContext}.
      */
     public static class Builder {
         private Player player;
         private Game game;
-        private int currentTurn;
         private List<Fleet> ownedFleets;
         private List<Fleet> enemyFleets;
-        private List<SpaceStation> stations;
         private int minerals;
         private int energy;
         private int food;
         private int credits;
+        private List<SpaceStation> stations;
+        private Map<String, Integer> resources;
 
         public Builder player(Player player) {
             this.player = player;
@@ -135,11 +115,6 @@ public class AiDecisionContext {
             return this;
         }
 
-        public Builder currentTurn(int currentTurn) {
-            this.currentTurn = currentTurn;
-            return this;
-        }
-
         public Builder ownedFleets(List<Fleet> ownedFleets) {
             this.ownedFleets = ownedFleets;
             return this;
@@ -147,11 +122,6 @@ public class AiDecisionContext {
 
         public Builder enemyFleets(List<Fleet> enemyFleets) {
             this.enemyFleets = enemyFleets;
-            return this;
-        }
-
-        public Builder stations(List<SpaceStation> stations) {
-            this.stations = stations;
             return this;
         }
 
@@ -175,8 +145,29 @@ public class AiDecisionContext {
             return this;
         }
 
+        public Builder stations(List<SpaceStation> stations) {
+            this.stations = stations;
+            return this;
+        }
+
+        public Builder resources(Map<String, Integer> resources) {
+            this.resources = resources;
+            return this;
+        }
+
         public AiDecisionContext build() {
             return new AiDecisionContext(this);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "AiDecisionContext{" +
+                "player=" + (player != null ? player.getEmpireName() : "null") +
+                ", ownedFleets=" + ownedFleets.size() +
+                ", enemyFleets=" + enemyFleets.size() +
+                ", minerals=" + minerals +
+                ", energy=" + energy +
+                '}';
     }
 }

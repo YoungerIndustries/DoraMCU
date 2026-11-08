@@ -3,6 +3,7 @@ package com.yisy.modules.doramcu.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import jakarta.servlet.Filter;
@@ -24,6 +25,12 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/**")
                 .addResourceLocations("static/")
                 .setCachePeriod(0);
+    }
+
+    @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+        // Redirect root path to the login page
+        registry.addRedirectViewController("/", "/index.html");
     }
 
     /**

@@ -327,3 +327,27 @@ Analyze and rebuild the web UI to implement the MDrive/JDrive split in fleet mov
 - JDrive status indicator (🚀/🚫) shows whether fleet health allows between-system jumps
 - Health bar color coding: green (>80%), orange (50-80%), dark orange (20-50%), red (<20%)
 - Verify: compileJava and compileTestJava pass, all GameSessionServiceTest and FleetTest tests pass (147 tests, 0 failures)
+
+### ✓ Step 10: Add pre-designed naval ship templates
+Create ShipTemplate class with S09 Fighting Ships pre-designed naval ship templates for quick ship deployment.
+
+- Created ShipTemplate.java with ShipClass enum (SCOUT, DESTROYER, LIGHT_CRUISER, HEAVY_CRUISER, BATTLECRUISER, BATTLESHIP, CARRIER, DREADNOUGHT)
+- Created TurretEntry and BayEntry inner classes for weapon storage
+- Implemented Builder pattern for immutable template construction
+- Added 8 factory methods: scoutCourier(), destroyer(), lightCruiser(), heavyCruiser(), battlecruiser(), battleship(), carrier(), dreadnought()
+- Each template defines tonnage, drives, armor, weapons, crew, and construction cost
+- toDesign() method converts template to HighGuardShipDesign for use with HighGuardShipFactory
+- Static getAllTemplates() and getByClass() methods for template browsing
+- Verified: compileJava and compileTestJava pass with 0 errors, all tests pass
+
+### Step 11: Wire ShipTemplate into HighGuardService and Controller
+Integrate the S09 ShipTemplate system (created in Step 10) into the service and controller layers so templates are accessible via the REST API.
+
+- Updated HighGuardService.createPresetShip() to use ShipTemplate.getAllTemplates() for S09 template matching
+- Added HighGuardService.listTemplates() to expose all available templates
+- Added HighGuardService.createFromTemplate(shipClass) for direct template-based creation
+- Added ShipTemplate.toDesign(int designId) overload to assign service-managed IDs
+- Added HighGuardController endpoint GET /api/v1/traveller/highguard/templates — lists all 8 S09 templates
+- Added HighGuardController endpoint POST /api/v1/traveller/highguard/ship/template — creates ship from template by class
+- Preserved backward compatibility: legacy presets (patrol, cruiser, dreadnought, freighter) checked first
+- Verified: compileJava and compileTestJava pass, all 32 HighGuardServiceTest tests pass

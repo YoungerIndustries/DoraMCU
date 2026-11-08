@@ -1,7 +1,19 @@
 package com.yisy.modules.doramcu.dto;
 
 import java.util.List;
+import java.util.Map;
 
+/**
+ * Game state response DTO for API responses.
+ * <p>
+ * NOTE: This class mirrors {@code com.yisy.modules.doradl.dto.GameStateResponse} with
+ * additional root-module-specific fields (pipeline, fleets, turn timing, empire summary).
+ * The two classes cannot share a common superclass because Java generics are invariant.
+ * Keep the shared field sets in sync when modifying either copy.
+ * </p>
+ *
+ * @see com.yisy.modules.doradl.dto.GameStateResponse
+ */
 public class GameStateResponse {
 
     private String sessionId;
@@ -19,6 +31,19 @@ public class GameStateResponse {
     private boolean schedulerEnabled;
     // Empire-specific data for the logged-in player
     private EmpireSummary empireSummary;
+    // Map of empire ID to empire name for ownership display in galaxy view
+    private Map<Integer, String> empireNameMap;
+    // Active battle summaries
+    private List<BattleSummaryDto> activeBattles;
+    // Traveller RPG integration fields
+    private CommanderSummaryDto commander;
+    private List<TradeOpportunityDto> tradeOpportunities;
+    // AI delegation status for the current player
+    private Map<String, Object> aiDelegationStatus;
+    // Global clock fields — tracks in-game date across all game systems
+    private String currentDateString;
+    private String currentFormattedDate;
+    private int elapsedDays;
 
     public GameStateResponse() {
     }
@@ -135,5 +160,69 @@ public class GameStateResponse {
 
     public void setEmpireSummary(EmpireSummary empireSummary) {
         this.empireSummary = empireSummary;
+    }
+
+    public Map<Integer, String> getEmpireNameMap() {
+        return empireNameMap;
+    }
+
+    public void setEmpireNameMap(Map<Integer, String> empireNameMap) {
+        this.empireNameMap = empireNameMap;
+    }
+
+    public List<BattleSummaryDto> getActiveBattles() {
+        return activeBattles;
+    }
+
+    public void setActiveBattles(List<BattleSummaryDto> activeBattles) {
+        this.activeBattles = activeBattles;
+    }
+
+    public CommanderSummaryDto getCommander() {
+        return commander;
+    }
+
+    public void setCommander(CommanderSummaryDto commander) {
+        this.commander = commander;
+    }
+
+    public List<TradeOpportunityDto> getTradeOpportunities() {
+        return tradeOpportunities;
+    }
+
+    public void setTradeOpportunities(List<TradeOpportunityDto> tradeOpportunities) {
+        this.tradeOpportunities = tradeOpportunities;
+    }
+
+    public Map<String, Object> getAiDelegationStatus() {
+        return aiDelegationStatus;
+    }
+
+    public void setAiDelegationStatus(Map<String, Object> aiDelegationStatus) {
+        this.aiDelegationStatus = aiDelegationStatus;
+    }
+
+    public String getCurrentDateString() {
+        return currentDateString;
+    }
+
+    public void setCurrentDateString(String currentDateString) {
+        this.currentDateString = currentDateString;
+    }
+
+    public String getCurrentFormattedDate() {
+        return currentFormattedDate;
+    }
+
+    public void setCurrentFormattedDate(String currentFormattedDate) {
+        this.currentFormattedDate = currentFormattedDate;
+    }
+
+    public int getElapsedDays() {
+        return elapsedDays;
+    }
+
+    public void setElapsedDays(int elapsedDays) {
+        this.elapsedDays = elapsedDays;
     }
 }

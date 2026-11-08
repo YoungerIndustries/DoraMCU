@@ -2,14 +2,12 @@ package com.yisy.modules.doramcu.ai;
 
 import com.yisy.modules.doramcu.hex.*;
 import com.yisy.modules.doraai.service.AiChatService;
-import com.yisy.modules.doraai.service.AiProvider.Message;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -59,15 +57,10 @@ public class GameChatService {
     public SseEmitter chat(String sessionId, String message, String mode, Long empireId) {
         String systemPrompt = buildGameAwareSystemPrompt(mode, empireId);
 
-        // Build the message list with system prompt
-        List<Message> messages = new ArrayList<>();
-        messages.add(new Message("system", systemPrompt));
-        messages.add(new Message("user", message));
-
         log.info("Game chat request: sessionId={}, mode={}, empireId={}", sessionId, mode, empireId);
 
-        // Delegate to the underlying chat service
-        return aiChatService.chat(sessionId, message, mode);
+        // Delegate to the underlying chat service with the game-aware system prompt
+        return aiChatService.chatWithSystemPrompt(sessionId, message, mode, systemPrompt);
     }
 
     /**

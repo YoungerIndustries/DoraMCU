@@ -42,8 +42,8 @@ public class Galaxy {
         private final int id;
         private final int row;
         private final int col;
-        private final String name;
-        private final String tradeType;
+        private String name;
+        private String tradeType;
         private final SubSector[][] subGrid;
         private final Map<Integer, SolarSystem> allSystems;
         private Integer controllerPlayerId;
@@ -134,6 +134,28 @@ public class Galaxy {
          */
         public String getTradeType() {
             return tradeType;
+        }
+
+        /**
+         * Sets the display name of this sector.
+         * Allows renaming sectors at runtime so the new name persists to the database.
+         *
+         * @param name the new display name
+         */
+        public void setName(String name) {
+            if (name == null || name.isBlank()) {
+                throw new IllegalArgumentException("Sector name must not be null or blank");
+            }
+            this.name = name;
+        }
+
+        /**
+         * Sets the Traveller-style trade classification for this sector.
+         *
+         * @param tradeType the new trade type
+         */
+        public void setTradeType(String tradeType) {
+            this.tradeType = tradeType;
         }
 
         /**
@@ -562,7 +584,7 @@ public class Galaxy {
     /**
      * @return the mutable map of all solar systems (for internal use during generation)
      */
-    Map<Integer, SolarSystem> getAllSystemsMap() {
+    public Map<Integer, SolarSystem> getAllSystemsMap() {
         return allSystems;
     }
 

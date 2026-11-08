@@ -8,8 +8,14 @@ import com.yisy.modules.doramcu.dto.*;
 import com.yisy.modules.doramcu.hex.*;
 import com.yisy.modules.doramcu.hex.Player;
 import com.yisy.modules.doramcu.model.GameSession;
+import com.yisy.modules.doramcu.repository.GalaxyRepository;
 import com.yisy.modules.doramcu.repository.PersistedGameSessionRepository;
 import com.yisy.modules.doramcu.repository.SolarSystemRepository;
+import com.yisy.modules.doramcu.service.GameStateBuilder;
+import com.yisy.modules.doramcu.service.SessionActionHandler;
+import com.yisy.modules.doramcu.unified.GameType;
+import com.yisy.modules.doramcu.unified.GlobalClock;
+import com.yisy.modules.doramcu.unified.GlobalClockService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +26,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -34,11 +41,28 @@ class AiPlayerServiceTest {
     void setUp() {
         SolarSystemRepository solarSystemRepository = Mockito.mock(SolarSystemRepository.class);
         PersistedGameSessionRepository persistedGameSessionRepository = Mockito.mock(PersistedGameSessionRepository.class);
+        GalaxyRepository galaxyRepository = Mockito.mock(GalaxyRepository.class);
+        Mockito.when(galaxyRepository.findAll()).thenReturn(new java.util.ArrayList<>());
         TurnScheduler turnScheduler = Mockito.mock(TurnScheduler.class);
         when(turnScheduler.getTurnIntervalSeconds()).thenReturn(5L);
         when(turnScheduler.getAccumulatedSeconds(anyString())).thenReturn(0L);
         when(turnScheduler.isEnabled()).thenReturn(true);
-        gameSessionService = new GameSessionService(solarSystemRepository, persistedGameSessionRepository, turnScheduler);
+        GameStateBuilder gameStateBuilder = Mockito.mock(GameStateBuilder.class);
+        Mockito.when(gameStateBuilder.buildPlayerSummaries(Mockito.any(), Mockito.any())).thenReturn(new java.util.ArrayList<>());
+        Mockito.when(gameStateBuilder.buildSubSectorInfo(Mockito.any(), Mockito.anyBoolean())).thenReturn(new java.util.ArrayList<>());
+        Mockito.when(gameStateBuilder.buildGameStateResponse(Mockito.any(), Mockito.any(), Mockito.anyBoolean())).thenAnswer(invocation -> {
+            com.yisy.modules.doramcu.dto.GameStateResponse resp = new com.yisy.modules.doramcu.dto.GameStateResponse();
+            com.yisy.modules.doramcu.model.GameSession session = invocation.getArgument(0);
+            if (session != null) {
+                resp.setSessionId(session.getSessionId());
+            }
+            resp.setSubSectors(new java.util.ArrayList<>());
+            return resp;
+        });
+        SessionActionHandler sessionActionHandler = Mockito.mock(SessionActionHandler.class);
+        GlobalClockService globalClockService = Mockito.mock(GlobalClockService.class);
+        when(globalClockService.getOrCreateClock(anyString(), any())).thenAnswer(invocation -> GlobalClock.forGameType(GameType.DORAMCU_4X));
+        gameSessionService = new GameSessionService(persistedGameSessionRepository, galaxyRepository, null, turnScheduler, gameStateBuilder, null, null, sessionActionHandler, globalClockService);
         dlGameAiService = Mockito.mock(DlGameAiService.class);
         AiDifficultyConfig aiDifficultyConfig = new AiDifficultyConfig();
         GameChatService gameChatService = Mockito.mock(GameChatService.class);
@@ -77,7 +101,7 @@ class AiPlayerServiceTest {
 
         GameSession session = gameSessionService.getGameSession(sessionId);
         assertNotNull(session);
-        assertEquals(2, session.getGame().getPlayerCount());
+        assertEquals(2, ((Game) session.getGame()).getPlayerCount());
         assertTrue(session.getPlayerIds().contains(1L));
     }
 
@@ -92,7 +116,7 @@ class AiPlayerServiceTest {
                 sessionId, "AI Opponent", AiPlayerService.Difficulty.MEDIUM);
 
         GameSession session = gameSessionService.getGameSession(sessionId);
-        Game game = session.getGame();
+        Game game = (Game) session.getGame();
         
         // The AI is the last player added
         List<Player> players = game.getPlayers();
@@ -135,7 +159,7 @@ class AiPlayerServiceTest {
 
         // Verify all players are in the session
         GameSession session = gameSessionService.getGameSession(sessionId);
-        assertEquals(4, session.getGame().getPlayerCount()); // Human + 3 AIs
+        assertEquals(4, ((Game) session.getGame()).getPlayerCount()); // Human + 3 AIs
     }
 
     // ---- Execute AI Turn ----
@@ -172,7 +196,7 @@ class AiPlayerServiceTest {
         JoinSessionResponse aiResponse = aiPlayerService.createAiPlayer(sessionId, "AI Builder", AiPlayerService.Difficulty.MEDIUM);
 
         GameSession session = gameSessionService.getGameSession(sessionId);
-        Game game = session.getGame();
+        Game game = (Game) session.getGame();
 
         List<Player> players = game.getPlayers();
         Player aiPlayer = players.get(players.size() - 1);
@@ -195,7 +219,7 @@ class AiPlayerServiceTest {
         aiPlayerService.createAiPlayer(sessionId, "AI Mover", AiPlayerService.Difficulty.EASY);
 
         GameSession session = gameSessionService.getGameSession(sessionId);
-        Game game = session.getGame();
+        Game game = (Game) session.getGame();
 
         List<Player> players = game.getPlayers();
         Player aiPlayer = players.get(players.size() - 1);
@@ -267,10 +291,10 @@ class AiPlayerServiceTest {
         aiPlayerService.createAiPlayer(sessionId, "AI Hard", AiPlayerService.Difficulty.HARD);
 
         GameSession session = gameSessionService.getGameSession(sessionId);
-        assertEquals(4, session.getGame().getPlayerCount());
+        assertEquals(4, ((Game) session.getGame()).getPlayerCount());
 
         // All AI players should have fleets
-        Game game = session.getGame();
+        Game game = (Game) session.getGame();
         List<Player> players = game.getPlayers();
         for (int i = 1; i < players.size(); i++) { // Skip human player at index 0
             Player player = players.get(i);

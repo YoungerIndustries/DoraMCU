@@ -1,77 +1,6 @@
 /* DoraMCU 4X Space Strategy - Redesigned UI (Endless Space 2 Inspired) */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap');
-
-:root {
-    /* Background colors - deep space */
-    --bg-primary: #050810;
-    --bg-secondary: #0a0f1a;
-    --bg-tertiary: #0f1525;
-    
-    /* Glassmorphism surfaces */
-    --glass-bg: rgba(15, 23, 42, 0.65);
-    --glass-bg-light: rgba(30, 41, 59, 0.5);
-    --glass-bg-hover: rgba(51, 65, 85, 0.5);
-    --glass-border: rgba(148, 163, 184, 0.12);
-    --glass-border-hover: rgba(148, 163, 184, 0.25);
-    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    --glass-blur: blur(16px);
-    
-    /* Accent colors - electric palette */
-    --accent-cyan: #00d4ff;
-    --accent-blue: #3b82f6;
-    --accent-purple: #a855f7;
-    --accent-green: #10b981;
-    --accent-orange: #f59e0b;
-    --accent-red: #ef4444;
-    --accent-pink: #ec4899;
-    --accent-gold: #fbbf24;
-    
-    /* Semantic colors */
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
-    --info: #3b82f6;
-    
-    /* Text colors */
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
-    --text-bright: #ffffff;
-    
-    /* Game element colors */
-    --star-color: #fbbf24;
-    --planet-color: #3b82f6;
-    --fleet-color: #10b981;
-    --enemy-color: #ef4444;
-    
-    /* Holographic effects */
-    --holo-cyan: rgba(0, 212, 255, 0.15);
-    --holo-purple: rgba(168, 85, 247, 0.15);
-    --holo-blue: rgba(59, 130, 246, 0.15);
-    
-    /* Glow effects */
-    --glow-cyan: 0 0 20px rgba(0, 212, 255, 0.4);
-    --glow-blue: 0 0 20px rgba(59, 130, 246, 0.4);
-    --glow-purple: 0 0 20px rgba(168, 85, 247, 0.4);
-    --glow-green: 0 0 20px rgba(16, 185, 129, 0.4);
-    --glow-red: 0 0 20px rgba(239, 68, 68, 0.4);
-    
-    /* Typography */
-    --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --font-display: 'Orbitron', 'Segoe UI', sans-serif;
-    
-    /* Spacing */
-    --radius-sm: 6px;
-    --radius-md: 10px;
-    --radius-lg: 16px;
-    --radius-xl: 24px;
-    
-    /* Transitions */
-    --transition-fast: 0.15s ease;
-    --transition-normal: 0.25s ease;
-    --transition-slow: 0.4s ease;
-}
+@import url('variables.css');
 
 *, *::before, *::after {
     margin: 0;
@@ -104,10 +33,11 @@ body::before {
     right: 0;
     bottom: 0;
     background: 
-        /* Nebula clouds */
-        radial-gradient(ellipse at 20% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
-        radial-gradient(ellipse at 80% 20%, rgba(168, 85, 247, 0.06) 0%, transparent 50%),
-        radial-gradient(ellipse at 60% 80%, rgba(0, 212, 255, 0.05) 0%, transparent 50%),
+        /* Nebula clouds - warm purple tones */
+        radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.12) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(192, 132, 252, 0.1) 0%, transparent 50%),
+        radial-gradient(ellipse at 60% 80%, rgba(34, 211, 238, 0.07) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(244, 114, 182, 0.05) 0%, transparent 60%),
         /* Stars - bright */
         radial-gradient(1.5px 1.5px at 10% 20%, rgba(255,255,255,0.9), transparent),
         radial-gradient(1.5px 1.5px at 30% 10%, rgba(255,255,255,0.9), transparent),
@@ -762,6 +692,518 @@ body::before {
     overflow: hidden;
     border-radius: var(--radius-md);
     border: 1px solid var(--glass-border);
+}
+
+/* Galaxy View (shared layout for all card-based views) */
+.galaxy-view {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.galaxy-view-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--glass-bg);
+    border-bottom: 1px solid var(--glass-border);
+    flex-shrink: 0;
+}
+
+.galaxy-view-title {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    flex: 1;
+}
+
+.galaxy-view-stats {
+    display: flex;
+    gap: 16px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.galaxy-stat {
+    white-space: nowrap;
+}
+
+/* Owned filter toggle */
+.owned-filter-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+}
+
+.owned-filter-toggle input[type="checkbox"] {
+    accent-color: var(--accent-cyan);
+    cursor: pointer;
+}
+
+.galaxy-view-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+/* Galaxy View Toolbar (search bar etc.) */
+.galaxy-view-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--glass-bg);
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.search-input {
+    flex: 1;
+    max-width: 400px;
+    padding: 8px 12px;
+    background: var(--bg-primary);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.search-input:focus {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.15);
+}
+
+.search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.search-results-count {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+/* Sector Cards Grid */
+.sector-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+}
+
+.sector-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    position: relative;
+}
+
+.sector-card:hover {
+    border-color: var(--accent-cyan);
+    box-shadow: var(--glow-cyan);
+    transform: translateY(-2px);
+}
+
+.sector-card.contested {
+    border-color: var(--danger);
+    box-shadow: 0 0 8px rgba(248, 113, 113, 0.3);
+}
+
+.sector-card.contested:hover {
+    box-shadow: 0 0 16px rgba(248, 113, 113, 0.5);
+}
+
+/* Ownership-based sector borders */
+.sector-card.owned {
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 8px rgba(6, 182, 212, 0.3);
+}
+
+.sector-card.owned:hover {
+    box-shadow: 0 0 16px rgba(6, 182, 212, 0.5);
+}
+
+.sector-card.shared {
+    border-color: var(--accent-purple);
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+}
+
+.sector-card.shared:hover {
+    box-shadow: 0 0 16px rgba(139, 92, 246, 0.5);
+}
+
+.sector-card.enemy {
+    border-color: var(--danger);
+    box-shadow: 0 0 8px rgba(248, 113, 113, 0.2);
+}
+
+.sector-card.enemy:hover {
+    box-shadow: 0 0 16px rgba(248, 113, 113, 0.4);
+}
+
+.sector-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.sector-card-name {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.sector-card-coords {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    font-family: 'Consolas', monospace;
+}
+
+.sector-card-stats {
+    display: flex;
+    gap: 12px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.sector-stat {
+    white-space: nowrap;
+}
+
+.sector-trade-type {
+    display: inline-block;
+    margin-top: 6px;
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--accent-purple);
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+/* Subsector Cards Grid */
+.subsector-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+}
+
+.subsector-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.subsector-card:hover {
+    border-color: var(--accent-cyan);
+    box-shadow: var(--glow-cyan);
+    transform: translateY(-2px);
+}
+
+.subsector-card.contested {
+    border-color: var(--danger);
+    box-shadow: 0 0 8px rgba(248, 113, 113, 0.3);
+}
+
+.subsector-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.subsector-card-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.subsector-card-coords {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    font-family: 'Consolas', monospace;
+}
+
+.subsector-card-stats {
+    display: flex;
+    gap: 12px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.subsector-stat {
+    white-space: nowrap;
+}
+
+.system-type-badge {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 0.68rem;
+    padding: 1px 6px;
+    background: rgba(6, 182, 212, 0.15);
+    color: #06b6d4;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+.subsector-systems-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--glass-border);
+}
+
+.system-preview-item {
+    font-size: 0.72rem;
+    color: var(--accent-purple);
+    background: rgba(192, 132, 252, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.system-preview-item:hover {
+    background: rgba(192, 132, 252, 0.2);
+    color: var(--text-primary);
+}
+
+/* Ownership badges */
+.ownership-badge {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.ownership-badge.owned {
+    background: rgba(52, 211, 153, 0.15);
+    color: var(--success);
+    border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.ownership-badge.shared {
+    background: rgba(251, 191, 36, 0.15);
+    color: var(--warning);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.ownership-badge.enemy {
+    background: rgba(248, 113, 113, 0.15);
+    color: var(--danger);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.ownership-badge.neutral {
+    background: rgba(139, 127, 170, 0.15);
+    color: var(--text-muted);
+    border: 1px solid rgba(139, 127, 170, 0.3);
+}
+
+.contested-badge {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.72rem;
+    color: var(--danger);
+    font-weight: 600;
+}
+
+/* System Detail View */
+.system-detail-body {
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+}
+
+.system-map-container {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+#systemMapCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.system-map-legend {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    display: flex;
+    gap: 12px;
+    padding: 6px 10px;
+    background: var(--glass-bg);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.system-info-panel {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    overflow-y: auto;
+}
+
+.system-info-panel h3 {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 8px 0;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.system-info-panel h3:not(:first-child) {
+    margin-top: 12px;
+}
+
+.system-detail-stats {
+    display: flex;
+    gap: 12px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.system-stat {
+    white-space: nowrap;
+}
+
+/* System selector dropdown */
+.system-selector {
+    background: rgba(28, 22, 56, 0.9);
+    color: var(--text-primary);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    font-size: 0.78rem;
+    font-family: var(--font-body);
+    cursor: pointer;
+    outline: none;
+    transition: border-color var(--transition-fast);
+    display: none;
+}
+
+.system-selector:hover,
+.system-selector:focus {
+    border-color: var(--accent-cyan);
+}
+
+.system-selector option {
+    background: var(--bg-dark);
+    color: var(--text-primary);
+}
+
+/* Planet detail items */
+.planet-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.planet-detail-item {
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.15);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    transition: all var(--transition-fast);
+}
+
+.planet-detail-item:hover {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+.planet-detail-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.planet-detail-type {
+    font-size: 0.72rem;
+    color: var(--accent-purple);
+    margin-top: 2px;
+}
+
+/* Fleet items in system view */
+.fleet-list-system {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fleet-system-item {
+    background: rgba(52, 211, 153, 0.08);
+    border: 1px solid rgba(52, 211, 153, 0.15);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+}
+
+.fleet-system-name {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.fleet-system-stats {
+    display: flex;
+    gap: 8px;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* Empty state */
+.empty-galaxy {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.empty-list {
+    text-align: center;
+    padding: 12px;
+    color: var(--text-muted);
+    font-size: 0.78rem;
 }
 
 #galaxyCanvas {
@@ -2865,4 +3307,1464 @@ body::before {
     gap: 8px;
     padding: 12px 20px;
     border-top: 1px solid var(--glass-border);
+}
+
+/* ============================================================
+   Fleet Detail Panel (right panel)
+   ============================================================ */
+
+.fleet-detail-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fleet-detail-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    margin-bottom: 2px;
+}
+
+.fleet-detail-position {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.fleet-detail-drives {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+
+.fleet-detail-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    background: var(--glass-bg-light);
+    border-radius: var(--radius-sm);
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+}
+
+.stat-label {
+    color: var(--text-muted);
+}
+
+.stat-value {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.fleet-detail-health {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.fleet-detail-ships {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.fleet-detail-ships h4 {
+    margin: 0 0 4px 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--glass-border);
+    padding-bottom: 4px;
+}
+
+.ship-detail-item {
+    padding: 8px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ship-detail-item.destroyed {
+    opacity: 0.5;
+    border-color: #e74c3c;
+}
+
+.ship-detail-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.ship-detail-stats {
+    display: flex;
+    gap: 8px;
+    font-size: 0.7rem;
+}
+
+.ship-detail-health {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ship-detail-points {
+    display: flex;
+    gap: 12px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.ship-detail-damage {
+    font-size: 0.7rem;
+    color: #e74c3c;
+}
+
+/* ============================================================
+   JDrive Target Dropdown
+   ============================================================ */
+
+#moveTargetSystemSelect {
+    width: 100%;
+    padding: 8px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    font-family: var(--font-primary);
+    cursor: pointer;
+}
+
+#moveTargetSystemSelect:focus {
+    outline: none;
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
+}
+
+#moveTargetSystemSelect optgroup {
+    font-weight: 700;
+    color: var(--accent-cyan);
+    background: var(--glass-bg-dark);
+}
+
+#moveTargetSystemSelect option {
+    padding: 4px 8px;
+    color: var(--text-primary);
+    background: var(--glass-bg);
+}
+
+.form-help {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-style: italic;
+}
+
+/* ============================================================
+   Tooltip Styles
+   ============================================================ */
+
+[data-tooltip] {
+    position: relative;
+}
+
+[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 4px 8px;
+    background: var(--glass-bg-dark);
+    border: 1px solid var(--glass-border);
+    border-radius: 4px;
+    color: var(--text-primary);
+    font-size: 0.7rem;
+    white-space: nowrap;
+    z-index: 1000;
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-tooltip]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% - 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: var(--glass-border);
+    z-index: 1000;
+    pointer-events: none;
+}
+
+/* ============================================================
+   Drive Badge Styles
+   ============================================================ */
+
+.drive-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.drive-badge.mdrive {
+    background: rgba(0, 212, 255, 0.15);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+}
+
+.drive-badge.jdrive {
+    background: rgba(139, 92, 246, 0.15);
+    color: #8b5cf6;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.drive-badge.jdrive.disabled {
+    background: rgba(231, 76, 60, 0.15);
+    color: #e74c3c;
+    border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+/* ============================================================
+   Health Bar Styles
+   ============================================================ */
+
+.health-bar-bg {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    min-width: 40px;
+}
+
+.health-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease, background-color 0.3s ease;
+    background: #2ecc71;
+}
+
+.health-good .health-bar-fill {
+    background: #2ecc71;
+}
+
+.health-damaged .health-bar-fill {
+    background: #f39c12;
+}
+
+.health-warning .health-bar-fill {
+    background: #e67e22;
+}
+
+.health-critical .health-bar-fill {
+    background: #e74c3c;
+}
+
+.health-text {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    min-width: 35px;
+    text-align: right;
+}
+
+/* ============================================================
+   Drive Info Badges (inline)
+   ============================================================ */
+
+.drive-info {
+    font-size: 0.7rem;
+    padding: 1px 6px;
+    border-radius: 8px;
+}
+
+.drive-info.mdrive {
+    background: rgba(0, 212, 255, 0.1);
+    color: var(--accent-cyan);
+}
+
+.drive-info.jdrive {
+    background: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
+}
+
+/* ============================================================
+   Combat Modal
+   ============================================================ */
+
+.combat-modal {
+    max-width: 700px;
+}
+
+.combat-selectors {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    margin-bottom: 16px;
+}
+
+.combat-selector-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.combat-selector-group label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.combat-vs-divider {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #e74c3c;
+    padding-top: 16px;
+    text-shadow: 0 0 10px rgba(231, 76, 60, 0.5);
+}
+
+.combat-odds {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    margin-bottom: 12px;
+}
+
+.combat-odds-header {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.combat-odds-body {
+    min-height: 60px;
+}
+
+.combat-odds-comparison {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.combat-side {
+    flex: 1;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.combat-side.attacker-side {
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.combat-side.defender-side {
+    background: rgba(231, 76, 60, 0.1);
+    border: 1px solid rgba(231, 76, 60, 0.2);
+}
+
+.combat-side-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.combat-side-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.combat-stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.combat-stat-row span:last-child {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.combat-odds-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 80px;
+}
+
+.combat-win-chance {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.combat-win-chance.favorable {
+    color: #2ecc71;
+}
+
+.combat-win-chance.unfavorable {
+    color: #e74c3c;
+}
+
+.combat-win-chance.even {
+    color: #f39c12;
+}
+
+.combat-advantage {
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 8px;
+}
+
+.combat-advantage.favorable {
+    background: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
+}
+
+.combat-advantage.unfavorable {
+    background: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+}
+
+.combat-advantage.even {
+    background: rgba(243, 156, 18, 0.2);
+    color: #f39c12;
+}
+
+/* Battle Result */
+
+.battle-result {
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    margin-top: 12px;
+    text-align: center;
+}
+
+.battle-result.victory {
+    background: rgba(46, 204, 113, 0.15);
+    border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.battle-result.defeat {
+    background: rgba(231, 76, 60, 0.15);
+    border: 1px solid rgba(231, 76, 60, 0.3);
+}
+
+.battle-result.draw {
+    background: rgba(243, 156, 18, 0.15);
+    border: 1px solid rgba(243, 156, 18, 0.3);
+}
+
+.battle-result-outcome {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.battle-result.victory .battle-result-outcome {
+    color: #2ecc71;
+}
+
+.battle-result.defeat .battle-result-outcome {
+    color: #e74c3c;
+}
+
+.battle-result.draw .battle-result-outcome {
+    color: #f39c12;
+}
+
+.battle-result-details {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+}
+
+.battle-fleet-status {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px;
+    background: var(--glass-bg);
+    border-radius: var(--radius-sm);
+    min-width: 150px;
+}
+
+.battle-fleet-name {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+}
+
+.battle-fleet-stats {
+    display: flex;
+    gap: 12px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* ============================================================
+   Ship Type Cards
+   ============================================================ */
+
+.ship-build-resources {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 8px;
+    background: var(--glass-bg);
+    border-radius: var(--radius-sm);
+}
+
+.ship-build-total {
+    grid-column: 1 / -1;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--accent-cyan);
+    font-weight: 600;
+    padding-top: 4px;
+    border-top: 1px solid var(--glass-border);
+}
+
+.ship-type-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.ship-type-card {
+    padding: 10px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.ship-type-card:hover {
+    border-color: var(--accent-cyan);
+    transform: translateY(-2px);
+}
+
+.ship-type-card.unaffordable {
+    opacity: 0.5;
+    border-color: rgba(231, 76, 60, 0.3);
+}
+
+.ship-type-card.unaffordable:hover {
+    transform: none;
+    border-color: rgba(231, 76, 60, 0.3);
+}
+
+.ship-type-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ship-type-icon {
+    font-size: 1.2rem;
+}
+
+.ship-type-name {
+    flex: 1;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.ship-type-cost {
+    font-size: 0.7rem;
+    color: var(--accent-cyan);
+    font-weight: 600;
+}
+
+.ship-type-desc {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.ship-type-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.ship-stat {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    background: var(--glass-bg-light);
+    border-radius: 4px;
+    color: var(--text-muted);
+}
+
+.ship-stat-label {
+    color: var(--text-muted);
+    margin-right: 2px;
+}
+
+.ship-build-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* ============================================================
+   Pipeline Flow Diagram
+   ============================================================ */
+
+.pipeline-flow-diagram {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+}
+
+.pipeline-flow-stage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px;
+    border-radius: var(--radius-sm);
+    background: var(--glass-bg-light);
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s ease;
+}
+
+.pipeline-flow-stage.active {
+    border-color: var(--accent-cyan);
+    background: rgba(0, 212, 255, 0.1);
+}
+
+.pipeline-flow-stage.inactive {
+    opacity: 0.4;
+}
+
+.pipeline-flow-icon {
+    font-size: 1.5rem;
+}
+
+.pipeline-flow-name {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.pipeline-flow-count {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+.pipeline-flow-rate {
+    font-size: 0.65rem;
+    color: var(--accent-cyan);
+    font-weight: 600;
+}
+
+.pipeline-flow-arrow {
+    font-size: 1.2rem;
+    color: var(--text-muted);
+}
+
+.pipeline-bottlenecks {
+    margin-bottom: 12px;
+}
+
+.pipeline-bottleneck {
+    padding: 6px 10px;
+    background: rgba(243, 156, 18, 0.15);
+    border: 1px solid rgba(243, 156, 18, 0.3);
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    color: #f39c12;
+    margin-bottom: 4px;
+}
+
+.pipeline-progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.pipeline-progress-fill {
+    height: 100%;
+    background: var(--accent-cyan);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+/* ============================================================
+   Minimap
+   ============================================================ */
+
+#minimap {
+    position: relative;
+}
+
+#minimapCanvas {
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+/* ============================================================
+   Enemy Fleet Items in Combat Phase
+   ============================================================ */
+
+.phase-enemy-item {
+    padding: 8px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-sm);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+    margin-bottom: 6px;
+}
+
+.phase-enemy-item:hover {
+    border-color: #e74c3c;
+}
+
+.phase-enemy-item.selected {
+    border-color: #e74c3c;
+    background: rgba(231, 76, 60, 0.1);
+}
+
+/* ============================================================
+   Subsector Hex Grid View (10x10)
+   ============================================================ */
+
+.hex-grid-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.hex-grid-container {
+    flex: 1;
+    min-height: 400px;
+    position: relative;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--glass-border);
+}
+
+.hex-grid-container canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: pointer;
+}
+
+.hex-grid-legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    background: var(--glass-bg);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--glass-border);
+}
+
+/* ============================================================
+   System Info Panel — Entity List
+   ============================================================ */
+
+.system-info-panel h3 {
+    font-size: 0.85rem;
+    color: var(--accent-purple);
+    margin: 12px 0 6px 0;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.system-info-panel h3:first-child {
+    margin-top: 0;
+}
+
+.entity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-bottom: 8px;
+}
+
+.entity-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: var(--glass-bg-light);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    transition: background 0.2s ease;
+}
+
+.entity-item:hover {
+    background: var(--glass-bg-hover);
+}
+
+.entity-icon {
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    width: 20px;
+    text-align: center;
+}
+
+.entity-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.entity-type {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.entity-pos {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    font-family: monospace;
+    flex-shrink: 0;
+    opacity: 0.6;
+}
+
+/* Entity type-specific colors */
+.star-entity .entity-name { color: #fcd34d; }
+.planet-entity .entity-name { color: #6366f1; }
+.moon-entity .entity-name { color: #d1d5db; }
+.asteroid-entity .entity-name { color: #9ca3af; }
+.comet-entity .entity-name { color: #60a5fa; }
+.fleet-entity .entity-name { color: #34d399; }
+.station-entity .entity-name { color: #f59e0b; }
+
+/* Planet detail info in entity items */
+.planet-detail-info {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.planet-owner-info {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.planet-owner-badge {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    background: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+    border-radius: 4px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.planet-size-badge {
+    font-size: 0.6rem;
+    padding: 1px 4px;
+    background: rgba(99, 102, 241, 0.2);
+    color: #818cf8;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+.planet-mineral-badge {
+    font-size: 0.6rem;
+    padding: 1px 4px;
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+.planet-capital-badge {
+    font-size: 0.6rem;
+    padding: 1px 4px;
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+/* Capital system highlight on hex grid */
+.legend-item-capital {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.legend-dot-capital {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+}
+
+/* Hidden class for filtered items */
+.galaxy-card-hidden {
+    display: none !important;
+}
+
+/* ============================================
+   Empire Status Bar
+   ============================================ */
+
+.empire-status-bar {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--glass-border);
+}
+
+.empire-status-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+}
+
+.empire-status-label {
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 60px;
+}
+
+.empire-status-value {
+    color: var(--accent-cyan);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.empire-integrity-bar {
+    flex: 1;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    overflow: hidden;
+    min-width: 60px;
+}
+
+.empire-integrity-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan));
+    border-radius: 4px;
+    transition: width 0.5s ease, background 0.5s ease;
+}
+
+.empire-integrity-fill.warning {
+    background: linear-gradient(90deg, var(--warning), var(--accent-orange));
+}
+
+.empire-integrity-fill.danger {
+    background: linear-gradient(90deg, var(--danger), var(--accent-red));
+}
+
+.empire-status-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 6px;
+}
+
+/* ============================================
+   Battle Status Modal
+   ============================================ */
+
+.battle-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    margin-bottom: 10px;
+}
+
+.battle-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.battle-card-title {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.battle-card-state {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.battle-card-state.in-progress {
+    background: rgba(251, 146, 60, 0.2);
+    color: var(--accent-orange);
+    border: 1px solid rgba(251, 146, 60, 0.3);
+}
+
+.battle-card-state.completed {
+    background: rgba(52, 211, 153, 0.2);
+    color: var(--accent-green);
+    border: 1px solid rgba(52, 211, 153, 0.3);
+}
+
+.battle-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.battle-fleet-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+}
+
+.battle-fleet-name {
+    font-weight: 600;
+    min-width: 120px;
+}
+
+.battle-fleet-name.attacker {
+    color: var(--accent-red);
+}
+
+.battle-fleet-name.defender {
+    color: var(--accent-blue);
+}
+
+.battle-hull-bar {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.battle-hull-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.battle-hull-fill.attacker {
+    background: var(--accent-red);
+}
+
+.battle-hull-fill.defender {
+    background: var(--accent-blue);
+}
+
+.battle-fleet-stats {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    min-width: 80px;
+    text-align: right;
+}
+
+.battle-card-events {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--glass-border);
+    max-height: 80px;
+    overflow-y: auto;
+}
+
+.battle-event-item {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    padding: 2px 0;
+    font-style: italic;
+}
+
+.battle-card-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+/* ============================================
+   Modal enhancements
+   ============================================ */
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--glass-border);
+    margin-bottom: 16px;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    transition: color var(--transition-fast);
+}
+
+.modal-close:hover {
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 8px 0;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--glass-border);
+    margin-top: 16px;
+}
+
+/* ============================================
+   Action button badge
+   ============================================ */
+
+.action-btn .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: white;
+    background: var(--accent-red);
+    border-radius: 9px;
+    margin-left: auto;
+}
+
+/* ============================================
+   Responsive Design Breakpoints
+   ============================================ */
+
+/* Tablet (768px and below) */
+@media (max-width: 768px) {
+    /* Collapsible side panels */
+    .left-panel,
+    .right-panel {
+        position: fixed;
+        top: 0;
+        height: 100vh;
+        z-index: 100;
+        transform: translateX(0);
+        transition: transform var(--transition-normal);
+    }
+
+    .left-panel {
+        left: 0;
+        width: 280px;
+        transform: translateX(-100%);
+    }
+
+    .left-panel.open {
+        transform: translateX(0);
+    }
+
+    .right-panel {
+        right: 0;
+        width: 280px;
+        transform: translateX(100%);
+    }
+
+    .right-panel.open {
+        transform: translateX(0);
+    }
+
+    /* Galaxy map takes full width on mobile */
+    .galaxy-map-container {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        width: 100% !important;
+    }
+
+    /* Panel toggle buttons */
+    .panel-toggle {
+        display: flex !important;
+        position: fixed;
+        top: 10px;
+        z-index: 101;
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius-sm);
+        padding: 8px;
+        cursor: pointer;
+    }
+
+    .panel-toggle.left {
+        left: 10px;
+    }
+
+    .panel-toggle.right {
+        right: 10px;
+    }
+
+    /* Overlay when panel is open */
+    .panel-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 99;
+    }
+
+    .panel-overlay.visible {
+        display: block;
+    }
+
+    /* Modals - full screen on mobile */
+    .modal-content {
+        width: 95% !important;
+        max-width: 95% !important;
+        margin: 10px auto;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    /* Event log - smaller on mobile */
+    .event-log-panel {
+        height: 150px !important;
+    }
+
+    /* Sector cards - smaller grid */
+    .sector-card {
+        padding: 8px !important;
+    }
+
+    /* Typography adjustments */
+    html {
+        font-size: 13px;
+    }
+}
+
+/* Mobile (480px and below) */
+@media (max-width: 480px) {
+    /* Further reduce panel sizes */
+    .left-panel,
+    .right-panel {
+        width: 100% !important;
+    }
+
+    /* Stack admin cards on mobile */
+    .admin-card {
+        margin-bottom: 1rem;
+    }
+
+    /* Login container - full width */
+    .login-container {
+        width: 95% !important;
+        padding: 24px 16px !important;
+    }
+
+    /* Smaller fonts */
+    html {
+        font-size: 12px;
+    }
+
+    /* Hide decorative elements */
+    .app-logo {
+        font-size: 3rem !important;
+    }
+
+    .app-title {
+        font-size: 1.5rem !important;
+    }
+
+    /* Compact modals */
+    .modal-content {
+        padding: 16px !important;
+    }
+
+    /* Stack flex containers */
+    .d-flex.flex-row {
+        flex-direction: column;
+    }
+
+    /* Galaxy map adjustments */
+    .galaxy-map-container {
+        min-height: 300px;
+    }
+
+    /* Turn phase modal - full screen */
+    .turn-phase-modal .modal-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        min-height: 100vh;
+        border-radius: 0 !important;
+    }
+}
+
+/* Landscape mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+    .login-container {
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-content {
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+}
+
+/* ============================================================
+   Traveller RPG Integration Styles
+   ============================================================ */
+
+.commander-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.commander-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.commander-career {
+    font-size: 0.75rem;
+    color: var(--accent-purple);
+    background: rgba(139, 92, 246, 0.15);
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.ability-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.ability-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+    font-size: 0.75rem;
+}
+
+.ability-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.ability-value {
+    font-weight: 600;
+    color: var(--accent-cyan);
+}
+
+.skills-list {
+    max-height: 80px;
+    overflow-y: auto;
+    margin-top: 4px;
+}
+
+.bonus-badge {
+    background: rgba(6, 182, 212, 0.15);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    border-radius: 10px;
+}
+
+/* Print styles */
+@media print {
+    body {
+        background: white !important;
+        color: black !important;
+    }
+
+    .left-panel,
+    .right-panel,
+    .modal-overlay,
+    .toast-container {
+        display: none !important;
+    }
+
+    .galaxy-map-container {
+        margin: 0 !important;
+        width: 100% !important;
+    }
 }

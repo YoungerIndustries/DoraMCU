@@ -3,6 +3,7 @@ package com.yisy.modules.doraai.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yisy.modules.doraai.config.DeepSeekConfig;
+import com.yisy.modules.doraai.util.RetryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -37,11 +38,9 @@ public class DeepSeekService implements AiProvider {
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
-    public DeepSeekService(DeepSeekConfig config) {
+    public DeepSeekService(DeepSeekConfig config, HttpClient httpClient) {
         this.config = config;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(java.time.Duration.ofMillis(config.getConnectTimeoutMs()))
-                .build();
+        this.httpClient = httpClient;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -62,37 +61,37 @@ public class DeepSeekService implements AiProvider {
         String modelName = (model != null && !model.isBlank()) ? model : config.getModel();
         log.debug("Sending chat request to DeepSeek, model: {}, messages: {}", modelName, messages.size());
 
-        try {
-            String jsonBody = buildChatRequest(modelName, messages, false);
-            String url = config.getBaseUrl() + "/v1/chat/completions";
+        return RetryUtil.withRetry(3, 1000L, () -> {
+            try {
+                String jsonBody = buildChatRequest(modelName, messages, false);
+                String url = config.getBaseUrl() + "/v1/chat/completions";
 
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .timeout(java.time.Duration.ofMillis(config.getReadTimeoutMs()))
-                    .header("Content-Type", "application/json")
-                    .header("Authorization", "Bearer " + config.getApiKey())
-                    .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
-                    .build();
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .timeout(java.time.Duration.ofMillis(config.getReadTimeoutMs()))
+                        .header("Content-Type", "application/json")
+                        .header("Authorization", "Bearer " + config.getApiKey())
+                        .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                        .build();
 
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
-            if (response.statusCode() != 200) {
-                log.error("DeepSeek chat request failed with status: {}", response.statusCode());
-                throw new DeepSeekException("DeepSeek API error: " + response.statusCode() + " - " + response.body());
+                if (response.statusCode() != 200) {
+                    log.error("DeepSeek chat request failed with status: {}", response.statusCode());
+                    throw new DeepSeekException("DeepSeek API error: " + response.statusCode() + " - " + response.body());
+                }
+
+                JsonNode jsonNode = objectMapper.readTree(response.body());
+                String content = extractContent(jsonNode);
+                return ResponseTextFilter.normalize(content);
+
+            } catch (IOException e) {
+                throw new DeepSeekException("Failed to communicate with DeepSeek: " + e.getMessage(), e);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new DeepSeekException("Interrupted while waiting for DeepSeek response", e);
             }
-
-            JsonNode jsonNode = objectMapper.readTree(response.body());
-            String content = extractContent(jsonNode);
-            return ResponseTextFilter.normalize(content);
-
-        } catch (IOException e) {
-            log.error("IO error communicating with DeepSeek", e);
-            throw new DeepSeekException("Failed to communicate with DeepSeek: " + e.getMessage(), e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Interrupted while waiting for DeepSeek response", e);
-            throw new DeepSeekException("Interrupted while waiting for DeepSeek response", e);
-        }
+        });
     }
 
     /**
@@ -104,7 +103,7 @@ public class DeepSeekService implements AiProvider {
      */
     @Override
     public SseEmitter streamChat(String model, List<Message> messages) {
-        SseEmitter emitter = new SseEmitter(0L);
+        SseEmitter emitter = new SseEmitter(300_000L); // 5 minute timeout
         streamChat(model, messages, emitter, null);
         return emitter;
     }

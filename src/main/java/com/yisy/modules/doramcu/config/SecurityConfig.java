@@ -23,49 +23,41 @@ public class SecurityConfig {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
-    @Bean
-    @Profile("dev")
-    public SecurityFilterChain devSecurityFilterChain(HttpSecurity http) throws Exception {
+    /**
+     * Common security configuration shared between dev and prod profiles.
+     * All controllers use /api/v1/* paths; legacy paths have been removed.
+     */
+    private void configureCommonSecurity(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**", "/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/v1/4x/auth/**", "/api/v1/4x/health/**").permitAll()
+                        .requestMatchers("/api/v1/captains-log/**", "/api/v1/traveller/rules/**", "/api/v1/traveller/trade/**", "/api/v1/traveller/psionics/**").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                        .requestMatchers("/", "/index.html", "/static/**", "/h2-console/**", "/game.html", "/css/**", "/js/**", "/favicon.ico", "/icons/**").permitAll()
-                        .requestMatchers("/api/galaxy/progress", "/api/v1/galaxy/progress").permitAll()
-                        .requestMatchers("/api/ai/**").permitAll()
+                        .requestMatchers("/", "/index.html", "/static/**", "/game.html", "/health.html", "/traveller-rules.html", "/css/**", "/js/**", "/favicon.ico", "/icons/**").permitAll()
+                        .requestMatchers("/api/v1/4x/galaxy/progress").permitAll()
                         .requestMatchers("/admin.html").authenticated()
                         .requestMatchers("/ws/**", "/ws/v1/**").authenticated()
-                        .requestMatchers("/api/sessions/**", "/api/v1/sessions/**").authenticated()
-                        .requestMatchers("/api/admin/**", "/api/v1/admin/**").authenticated()
+                        .requestMatchers("/api/v1/4x/sessions/**").authenticated()
+                        .requestMatchers("/api/v1/4x/admin/**").authenticated()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .headers(headers -> headers.frameOptions(frame -> frame.disable()));
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+    }
 
+    @Bean
+    @Profile("dev")
+    public SecurityFilterChain devSecurityFilterChain(HttpSecurity http) throws Exception {
+        configureCommonSecurity(http);
+        http.headers(headers -> headers.frameOptions(frame -> frame.disable()));
         return http.build();
     }
 
     @Bean
     @Profile("!dev")
     public SecurityFilterChain prodSecurityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(csrf -> csrf.disable())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**", "/api/v1/auth/**").permitAll()
-                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                        .requestMatchers("/", "/index.html", "/static/**", "/game.html", "/css/**", "/js/**", "/favicon.ico", "/icons/**").permitAll()
-                        .requestMatchers("/api/galaxy/progress", "/api/v1/galaxy/progress").permitAll()
-                        .requestMatchers("/admin.html").authenticated()
-                        .requestMatchers("/ws/**", "/ws/v1/**").authenticated()
-                        .requestMatchers("/api/sessions/**", "/api/v1/sessions/**").authenticated()
-                        .requestMatchers("/api/admin/**", "/api/v1/admin/**").authenticated()
-                        .anyRequest().authenticated()
-                )
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-
+        configureCommonSecurity(http);
         return http.build();
     }
 

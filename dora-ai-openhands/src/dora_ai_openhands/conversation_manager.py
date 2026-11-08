@@ -7,6 +7,7 @@ allowing the agent to maintain context across multiple interactions.
 
 import json
 import os
+import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -42,7 +43,7 @@ class ConversationManager:
             The session ID
         """
         if session_id is None:
-            session_id = datetime.now().strftime("%Y%m%d-%H%M%S")
+            session_id = str(uuid.uuid4())
         
         session = {
             "id": session_id,

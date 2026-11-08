@@ -6,6 +6,8 @@ import com.yisy.modules.doraai.service.DeepSeekService.DeepSeekException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.net.http.HttpClient;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class DeepSeekServiceTest {
@@ -17,7 +19,8 @@ class DeepSeekServiceTest {
     void setUp() {
         config = new DeepSeekConfig();
         config.setApiKey("test-key");
-        service = new DeepSeekService(config);
+        HttpClient httpClient = HttpClient.newBuilder().build();
+        service = new DeepSeekService(config, httpClient);
     }
 
     @Test
@@ -74,7 +77,7 @@ class DeepSeekServiceTest {
     @Test
     void isAvailable_returnsFalseWhenApiKeyMissing() {
         config.setApiKey(null);
-        DeepSeekService svc = new DeepSeekService(config);
+        DeepSeekService svc = new DeepSeekService(config, HttpClient.newBuilder().build());
 
         assertFalse(svc.isAvailable());
     }
@@ -82,7 +85,7 @@ class DeepSeekServiceTest {
     @Test
     void isAvailable_returnsFalseWhenApiKeyBlank() {
         config.setApiKey("   ");
-        DeepSeekService svc = new DeepSeekService(config);
+        DeepSeekService svc = new DeepSeekService(config, HttpClient.newBuilder().build());
 
         assertFalse(svc.isAvailable());
     }
@@ -91,7 +94,7 @@ class DeepSeekServiceTest {
     void isAvailable_returnsFalseWhenOffline() {
         config.setApiKey("invalid-key");
         config.setConnectTimeoutMs(100);
-        DeepSeekService svc = new DeepSeekService(config);
+        DeepSeekService svc = new DeepSeekService(config, HttpClient.newBuilder().build());
 
         boolean available = svc.isAvailable();
         assertFalse(available);
@@ -149,7 +152,7 @@ class DeepSeekServiceTest {
     @Test
     void chat_throwsExceptionWhenApiKeyMissing() {
         config.setApiKey(null);
-        DeepSeekService svc = new DeepSeekService(config);
+        DeepSeekService svc = new DeepSeekService(config, HttpClient.newBuilder().build());
 
         Message msg = new Message("user", "Hello");
         assertThrows(DeepSeekException.class, () -> svc.chat("deepseek-chat", java.util.List.of(msg)));
@@ -161,7 +164,7 @@ class DeepSeekServiceTest {
         // This test verifies the service is created and attempts the call
         config.setApiKey("invalid-key");
         config.setReadTimeoutMs(100);
-        DeepSeekService svc = new DeepSeekService(config);
+        DeepSeekService svc = new DeepSeekService(config, HttpClient.newBuilder().build());
 
         Message msg = new Message("user", "Hello");
         assertThrows(DeepSeekException.class, () -> svc.chat("deepseek-reasoner", java.util.List.of(msg)));
@@ -171,7 +174,7 @@ class DeepSeekServiceTest {
     void streamChat_returnsSseEmitter() {
         config.setApiKey("invalid-key");
         config.setReadTimeoutMs(100);
-        DeepSeekService svc = new DeepSeekService(config);
+        DeepSeekService svc = new DeepSeekService(config, HttpClient.newBuilder().build());
 
         Message msg = new Message("user", "Hello");
         org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter = svc.streamChat("deepseek-chat", java.util.List.of(msg));
@@ -183,7 +186,7 @@ class DeepSeekServiceTest {
     void streamChat_withExternalEmitter_doesNotThrow() {
         config.setApiKey("invalid-key");
         config.setReadTimeoutMs(100);
-        DeepSeekService svc = new DeepSeekService(config);
+        DeepSeekService svc = new DeepSeekService(config, HttpClient.newBuilder().build());
 
         Message msg = new Message("user", "Hello");
         org.springframework.web.servlet.mvc.method.annotation.SseEmitter emitter =

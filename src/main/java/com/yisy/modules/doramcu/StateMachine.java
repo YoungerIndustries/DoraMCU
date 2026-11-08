@@ -2,196 +2,90 @@ package com.yisy.modules.doramcu;
 
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
+import java.util.function.BiPredicate;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
- * A generic finite state machine implementation that supports type-safe states and events.
+ * A generic finite state machine with builder pattern support.
  * <p>
- * This class provides a flexible way to model state transitions with:
- * <ul>
- *   <li>Type-safe states and events using generics</li>
- *   <li>Transition guards (conditions that must be met for a transition to occur)</li>
- *   <li>Entry and exit actions for states</li>
- *   <li>State change listeners for observing transitions</li>
- *   <li>Fluent API for building state machines</li>
- * </ul>
+ * Supports transitions with guard conditions, entry/exit actions,
+ * state change listeners, and context-aware event sending.
+ * </p>
  *
- * @param <S> the type of state
- * @param <E> the type of event
- * @author Junie
+ * @param <S> the state type
+ * @param <E> the event type
  */
 public class StateMachine<S, E> {
 
     /**
-     * Represents a transition from one state to another triggered by an event.
+     * Functional interface for state change listeners.
      */
-    public static class Transition<S, E> {
-        private final S fromState;
-        private final E event;
-        private final S toState;
-        private final PredicateWithEvent<S, E> guard;
+    @FunctionalInterface
+    public interface StateChangeListener<S, E> {
+        void onStateChanged(S previousState, E event);
+    }
 
-        /**
-         * Creates a transition without a guard condition.
-         *
-         * @param fromState the source state
-         * @param event     the triggering event
-         * @param toState   the target state
-         */
-        public Transition(S fromState, E event, S toState) {
-            this(fromState, event, toState, null);
-        }
+    /**
+     * A single transition definition.
+     */
+    private static class Transition<S, E> {
+        final S fromState;
+        final E event;
+        final S toState;
+        final BiPredicate<S, Object> guard;
 
-        /**
-         * Creates a transition with an optional guard condition.
-         *
-         * @param fromState the source state
-         * @param event     the triggering event
-         * @param toState   the target state
-         * @param guard     optional guard condition; if null, the transition always succeeds
-         */
-        public Transition(S fromState, E event, S toState, PredicateWithEvent<S, E> guard) {
+        Transition(S fromState, E event, S toState, BiPredicate<S, Object> guard) {
             this.fromState = fromState;
             this.event = event;
             this.toState = toState;
             this.guard = guard;
         }
-
-        public S getFromState() {
-            return fromState;
-        }
-
-        public E getEvent() {
-            return event;
-        }
-
-        public S getToState() {
-            return toState;
-        }
-
-        public PredicateWithEvent<S, E> getGuard() {
-            return guard;
-        }
-
-        /**
-         * Checks if this transition can be taken given the current state and context.
-         *
-         * @param currentState the current state of the machine
-         * @param context      optional context data for guard evaluation
-         * @return true if the transition is valid and guard passes (or no guard)
-         */
-        @SuppressWarnings("unchecked")
-        public boolean canTransition(S currentState, Object context) {
-            if (!fromState.equals(currentState)) {
-                return false;
-            }
-            if (guard == null) {
-                return true;
-            }
-            return guard.test(currentState, (E) context);
-        }
     }
 
-    /**
-     * Functional interface for a predicate that takes a state and context.
-     *
-     * @param <S> the type of state
-     * @param <E> the type of event/context
-     */
-    @FunctionalInterface
-    public interface PredicateWithEvent<S, E> {
-        boolean test(S state, E context);
-    }
-
-    /**
-     * Functional interface for state change listeners.
-     *
-     * @param <S> the type of state
-     * @param <E> the type of event
-     */
-    public interface StateChangeListener<S, E> extends BiConsumer<S, E> {
-        @Override
-        void accept(S previousState, E event);
-    }
-
-    private final Map<S, List<Transition<S, E>>> transitionMap;
-    private final List<StateChangeListener<S, E>> listeners;
-    private final Map<S, Runnable> entryActions;
-    private final Map<S, Runnable> exitActions;
     private S initialState;
     private S currentState;
-    private boolean initialized;
+    private final List<Transition<S, E>> transitions = new ArrayList<>();
+    private final Map<S, Runnable> entryActions = new HashMap<>();
+    private final Map<S, Runnable> exitActions = new HashMap<>();
+    private final CopyOnWriteArrayList<StateChangeListener<S, E>> listeners = new CopyOnWriteArrayList<>();
+    private boolean built = false;
 
     public StateMachine() {
-        this.transitionMap = new HashMap<>();
-        this.listeners = new CopyOnWriteArrayList<>();
-        this.entryActions = new HashMap<>();
-        this.exitActions = new HashMap<>();
-        this.initialized = false;
     }
 
     /**
-     * Creates a new StateMachine instance sharing the immutable transition map,
-     * entry/exit actions, and initial state from a template instance.
-     *
-     * @param template the template state machine
+     * Starts building a new StateMachine instance.
      */
-    public StateMachine(StateMachine<S, E> template) {
-        this.transitionMap = template.transitionMap;
-        this.listeners = new CopyOnWriteArrayList<>();
-        this.entryActions = template.entryActions;
-        this.exitActions = template.exitActions;
-        this.initialState = template.initialState;
-        this.currentState = template.initialState;
-        this.initialized = true;
+    public static <S, E> StateMachine<S, E> builder() {
+        return new StateMachine<>();
     }
 
     /**
-     * Sets the initial state of the state machine.
-     *
-     * @param initialState the initial state
-     * @return this state machine for method chaining
+     * Sets the initial state.
      */
-    public StateMachine<S, E> initialState(S initialState) {
-        this.initialState = initialState;
-        this.currentState = initialState;
+    public StateMachine<S, E> initialState(S state) {
+        this.initialState = state;
         return this;
     }
 
     /**
-     * Adds a transition from one state to another triggered by an event.
-     *
-     * @param fromState the source state
-     * @param event     the triggering event
-     * @param toState   the target state
-     * @return this state machine for method chaining
+     * Adds a transition without guard.
      */
-    public StateMachine<S, E> onTransition(S fromState, E event, S toState) {
-        return onTransition(fromState, event, toState, null);
+    public StateMachine<S, E> onTransition(S from, E event, S to) {
+        return onTransition(from, event, to, (s, ctx) -> true);
     }
 
     /**
      * Adds a transition with a guard condition.
-     *
-     * @param fromState the source state
-     * @param event     the triggering event
-     * @param toState   the target state
-     * @param guard     optional guard condition
-     * @return this state machine for method chaining
      */
-    public StateMachine<S, E> onTransition(S fromState, E event, S toState, PredicateWithEvent<S, E> guard) {
-        Transition<S, E> transition = new Transition<>(fromState, event, toState, guard);
-        transitionMap.computeIfAbsent(fromState, k -> new ArrayList<>()).add(transition);
+    public StateMachine<S, E> onTransition(S from, E event, S to, BiPredicate<S, Object> guard) {
+        transitions.add(new Transition<>(from, event, to, guard));
         return this;
     }
 
     /**
-     * Registers an entry action that executes when entering a state.
-     *
-     * @param state   the state to register the action for
-     * @param action  the action to execute on entry
-     * @return this state machine for method chaining
+     * Registers an entry action for a state.
      */
     public StateMachine<S, E> onEntry(S state, Runnable action) {
         entryActions.put(state, action);
@@ -199,11 +93,7 @@ public class StateMachine<S, E> {
     }
 
     /**
-     * Registers an exit action that executes when leaving a state.
-     *
-     * @param state   the state to register the action for
-     * @param action  the action to execute on exit
-     * @return this state machine for method chaining
+     * Registers an exit action for a state.
      */
     public StateMachine<S, E> onExit(S state, Runnable action) {
         exitActions.put(state, action);
@@ -211,10 +101,7 @@ public class StateMachine<S, E> {
     }
 
     /**
-     * Registers a listener that is notified of all state changes.
-     *
-     * @param listener the listener to register
-     * @return this state machine for method chaining
+     * Adds a state change listener.
      */
     public StateMachine<S, E> addListener(StateChangeListener<S, E> listener) {
         listeners.add(listener);
@@ -222,193 +109,123 @@ public class StateMachine<S, E> {
     }
 
     /**
-     * Removes a previously registered listener.
-     *
-     * @param listener the listener to remove
-     * @return this state machine for method chaining
+     * Removes a state change listener.
      */
-    public StateMachine<S, E> removeListener(StateChangeListener<S, E> listener) {
+    public void removeListener(StateChangeListener<S, E> listener) {
         listeners.remove(listener);
+    }
+
+    /**
+     * Finalizes the state machine configuration.
+     * Returns this for builder chaining.
+     */
+    public StateMachine<S, E> build() {
+        if (initialState == null) {
+            throw new IllegalStateException("Initial state must be set before building");
+        }
+        currentState = initialState;
+        built = true;
+        // Execute entry action for initial state
+        Runnable entry = entryActions.get(initialState);
+        if (entry != null) {
+            entry.run();
+        }
         return this;
     }
 
     /**
-     * Returns the current state of the state machine.
-     *
-     * @return the current state
+     * Returns the current state.
      */
     public S getCurrentState() {
         return currentState;
     }
 
     /**
-     * Checks if the state machine is in a specific state.
-     *
-     * @param state the state to check
-     * @return true if the current state equals the given state
+     * Checks if the machine is in the given state.
      */
     public boolean isInState(S state) {
         return currentState != null && currentState.equals(state);
     }
 
     /**
-     * Processes an event and attempts to transition to a new state.
-     *
-     * @param event the event to process
-     * @return true if a transition occurred, false otherwise
-     * @throws IllegalStateException if the state machine is not initialized
+     * Sends an event without context.
      */
     public boolean sendEvent(E event) {
         return sendEvent(event, null);
     }
 
     /**
-     * Processes an event with optional context data and attempts to transition to a new state.
-     *
-     * @param event   the event to process
-     * @param context optional context data for guard evaluation
-     * @return true if a transition occurred, false otherwise
-     * @throws IllegalStateException if the state machine is not initialized
+     * Sends an event with context.
      */
     public boolean sendEvent(E event, Object context) {
-        if (!initialized) {
-            throw new IllegalStateException("State machine is not initialized. Call build() first.");
+        if (!built) {
+            throw new IllegalStateException("StateMachine not initialized. Call build() first.");
         }
 
-        List<Transition<S, E>> transitions = transitionMap.get(currentState);
-        if (transitions == null || transitions.isEmpty()) {
-            return false;
-        }
-
-        for (Transition<S, E> transition : transitions) {
-            if (transition.getEvent().equals(event) && transition.canTransition(currentState, context)) {
-                S previousState = currentState;
-                S nextState = transition.getToState();
-
-                // Execute exit action for current state
-                Runnable exitAction = exitActions.get(previousState);
-                if (exitAction != null) {
-                    exitAction.run();
+        Transition<S, E> matched = null;
+        for (Transition<S, E> t : transitions) {
+            if (t.fromState.equals(currentState) && t.event.equals(event)) {
+                if (t.guard.test(currentState, context)) {
+                    matched = t;
+                    break;
                 }
-
-                // Update current state
-                currentState = nextState;
-
-                // Execute entry action for new state
-                Runnable entryAction = entryActions.get(nextState);
-                if (entryAction != null) {
-                    entryAction.run();
-                }
-
-                // Notify listeners
-                for (StateChangeListener<S, E> listener : listeners) {
-                    listener.accept(previousState, event);
-                }
-
-                return true;
             }
         }
 
-        return false;
-    }
-
-    /**
-     * Resets the state machine to its initial state.
-     */
-    public void reset() {
-        if (!initialized) {
-            throw new IllegalStateException("State machine is not initialized. Call build() first.");
+        if (matched == null) {
+            return false;
         }
 
         S previousState = currentState;
-        
-        // Execute exit action for current state
-        Runnable exitAction = exitActions.get(previousState);
-        if (exitAction != null) {
-            exitAction.run();
+
+        // Execute exit action
+        Runnable exit = exitActions.get(previousState);
+        if (exit != null) {
+            exit.run();
         }
 
-        currentState = initialState;
+        // Transition
+        currentState = matched.toState;
 
-        // Execute entry action for initial state
-        Runnable entryAction = entryActions.get(initialState);
-        if (entryAction != null) {
-            entryAction.run();
+        // Execute entry action
+        Runnable entry = entryActions.get(currentState);
+        if (entry != null) {
+            entry.run();
         }
+
+        // Notify listeners
+        for (StateChangeListener<S, E> listener : listeners) {
+            listener.onStateChanged(previousState, event);
+        }
+
+        return true;
     }
 
     /**
-     * Initializes the state machine and sets the current state to the initial state.
-     * Must be called before sending events.
-     */
-    public void build() {
-        if (initialState == null) {
-            throw new IllegalStateException("Initial state must be set before building the state machine.");
-        }
-        currentState = initialState;
-        initialized = true;
-
-        // Execute entry action for initial state
-        Runnable entryAction = entryActions.get(initialState);
-        if (entryAction != null) {
-            entryAction.run();
-        }
-    }
-
-    /**
-     * Checks if the state machine can process the given event from the current state.
-     *
-     * @param event the event to check
-     * @return true if a valid transition exists for the event
+     * Checks if an event can be sent from the current state.
      */
     public boolean canSendEvent(E event) {
-        return canSendEvent(event, null);
-    }
-
-    /**
-     * Checks if the state machine can process the given event with context from the current state.
-     *
-     * @param event   the event to check
-     * @param context optional context data for guard evaluation
-     * @return true if a valid transition exists for the event
-     */
-    public boolean canSendEvent(E event, Object context) {
-        List<Transition<S, E>> transitions = transitionMap.get(currentState);
-        if (transitions == null) {
-            return false;
-        }
-
-        for (Transition<S, E> transition : transitions) {
-            if (transition.getEvent().equals(event) && transition.canTransition(currentState, context)) {
-                return true;
+        if (!built) return false;
+        for (Transition<S, E> t : transitions) {
+            if (t.fromState.equals(currentState) && t.event.equals(event)) {
+                if (t.guard.test(currentState, null)) {
+                    return true;
+                }
             }
         }
         return false;
     }
 
     /**
-     * Returns all possible events that can be processed from the current state.
-     *
-     * @return a list of possible events
+     * Returns the list of events that can be sent from the current state.
      */
     public List<E> getPossibleEvents() {
-        return getPossibleEvents(null);
-    }
-
-    /**
-     * Returns all possible events that can be processed from the current state with context.
-     *
-     * @param context optional context data for guard evaluation
-     * @return a list of possible events
-     */
-    @SuppressWarnings("unchecked")
-    public List<E> getPossibleEvents(Object context) {
         List<E> events = new ArrayList<>();
-        List<Transition<S, E>> transitions = transitionMap.get(currentState);
-        if (transitions != null) {
-            for (Transition<S, E> transition : transitions) {
-                if (transition.canTransition(currentState, context)) {
-                    events.add(transition.getEvent());
+        if (!built) return events;
+        for (Transition<S, E> t : transitions) {
+            if (t.fromState.equals(currentState) && t.guard.test(currentState, null)) {
+                if (!events.contains(t.event)) {
+                    events.add(t.event);
                 }
             }
         }
@@ -417,120 +234,35 @@ public class StateMachine<S, E> {
 
     /**
      * Returns all transitions defined for a given state.
-     *
-     * @param state the state to query
-     * @return a list of transitions from the given state
      */
     public List<Transition<S, E>> getTransitions(S state) {
-        return Optional.ofNullable(transitionMap.get(state))
-                .map(Collections::unmodifiableList)
-                .orElse(Collections.emptyList());
+        List<Transition<S, E>> result = new ArrayList<>();
+        for (Transition<S, E> t : transitions) {
+            if (t.fromState.equals(state)) {
+                result.add(t);
+            }
+        }
+        return result;
     }
 
     /**
-     * Builder class for creating StateMachine instances with a fluent API.
-     *
-     * @param <S> the type of state
-     * @param <E> the type of event
+     * Resets the state machine to its initial state.
      */
-    public static class Builder<S, E> {
-        private final StateMachine<S, E> stateMachine;
+    public void reset() {
+        if (!built) return;
 
-        public Builder() {
-            this.stateMachine = new StateMachine<>();
+        // Execute exit action for current state
+        Runnable exit = exitActions.get(currentState);
+        if (exit != null) {
+            exit.run();
         }
 
-        /**
-         * Sets the initial state.
-         *
-         * @param initialState the initial state
-         * @return this builder for method chaining
-         */
-        public Builder<S, E> initialState(S initialState) {
-            stateMachine.initialState(initialState);
-            return this;
-        }
+        currentState = initialState;
 
-        /**
-         * Adds a transition.
-         *
-         * @param fromState the source state
-         * @param event     the triggering event
-         * @param toState   the target state
-         * @return this builder for method chaining
-         */
-        public Builder<S, E> onTransition(S fromState, E event, S toState) {
-            return onTransition(fromState, event, toState, null);
+        // Execute entry action for initial state
+        Runnable entry = entryActions.get(currentState);
+        if (entry != null) {
+            entry.run();
         }
-
-        /**
-         * Adds a transition with a guard condition.
-         *
-         * @param fromState the source state
-         * @param event     the triggering event
-         * @param toState   the target state
-         * @param guard     optional guard condition
-         * @return this builder for method chaining
-         */
-        public Builder<S, E> onTransition(S fromState, E event, S toState, PredicateWithEvent<S, E> guard) {
-            stateMachine.onTransition(fromState, event, toState, guard);
-            return this;
-        }
-
-        /**
-         * Registers an entry action.
-         *
-         * @param state  the state to register the action for
-         * @param action the action to execute on entry
-         * @return this builder for method chaining
-         */
-        public Builder<S, E> onEntry(S state, Runnable action) {
-            stateMachine.onEntry(state, action);
-            return this;
-        }
-
-        /**
-         * Registers an exit action.
-         *
-         * @param state  the state to register the action for
-         * @param action the action to execute on exit
-         * @return this builder for method chaining
-         */
-        public Builder<S, E> onExit(S state, Runnable action) {
-            stateMachine.onExit(state, action);
-            return this;
-        }
-
-        /**
-         * Registers a state change listener.
-         *
-         * @param listener the listener to register
-         * @return this builder for method chaining
-         */
-        public Builder<S, E> addListener(StateChangeListener<S, E> listener) {
-            stateMachine.addListener(listener);
-            return this;
-        }
-
-        /**
-         * Builds and initializes the state machine.
-         *
-         * @return the built state machine
-         */
-        public StateMachine<S, E> build() {
-            stateMachine.build();
-            return stateMachine;
-        }
-    }
-
-    /**
-     * Creates a new builder for constructing a StateMachine.
-     *
-     * @param <S> the type of state
-     * @param <E> the type of event
-     * @return a new builder instance
-     */
-    public static <S, E> Builder<S, E> builder() {
-        return new Builder<>();
     }
 }

@@ -1,5 +1,6 @@
 package com.yisy.modules.doramcu.hex.manager;
 
+import com.yisy.modules.doramcu.hex.Battle;
 import com.yisy.modules.doramcu.hex.ConstructionModuleType;
 import com.yisy.modules.doramcu.hex.ConstructionOrder;
 import com.yisy.modules.doramcu.hex.Fleet;
@@ -90,6 +91,8 @@ public class TurnManager {
      *   <li>Ship construction progress</li>
      *   <li>Fleet shield recharge and hull repair</li>
      *   <li>Ship fuel and maintenance consumption</li>
+     *   <li>Active battle resolution</li>
+     *   <li>Space station upkeep and resource production</li>
      * </ul>
      * </p>
      */
@@ -112,11 +115,193 @@ public class TurnManager {
         // Process ship fuel and maintenance consumption
         processShipMaintenance();
 
+        // Resolve active battles — advance each battle by one round per turn
+        resolveActiveBattles();
+
         // Process space station upkeep and resource production
         processStationUpkeep();
 
+        // Process trade market fluctuations
+        processTradeMarkets();
+
+        // Process mercenary income for all empires
+        processMercenaryIncome();
+
         // Check for game end conditions
         checkGameEndConditions();
+    }
+
+    // ============================================================
+    // Trade Market Processing
+    // ============================================================
+
+    /**
+     * Processes trade market fluctuations at end-of-turn.
+     * Market conditions change, affecting commodity prices.
+     * Delegates to TradeManager which handles: market fluctuation, economic events,
+     * trade route network building, auto-trade, and credit exchange for each empire.
+     */
+    private void processTradeMarkets() {
+        if (context instanceof com.yisy.modules.doramcu.hex.Game game) {
+            com.yisy.modules.doramcu.hex.manager.TradeManager tradeManager = game.getTradeManager();
+            if (tradeManager != null) {
+                tradeManager.processEndOfTurn(pipelineManagers);
+            }
+        }
+    }
+
+    // ============================================================
+    // Mercenary Income Processing
+    // ============================================================
+
+    /**
+     * Processes mercenary ticket income for all empires at end-of-turn.
+     * Delegates to MercenaryIncomeManager which handles: contract processing,
+     * mission resolution, ticket income calculation, and credit distribution.
+     */
+    private void processMercenaryIncome() {
+        if (context instanceof com.yisy.modules.doramcu.hex.Game game) {
+            com.yisy.modules.doramcu.hex.manager.MercenaryIncomeManager mercManager = game.getMercenaryIncomeManager();
+            if (mercManager != null) {
+                mercManager.processEndOfTurn();
+            }
+        }
+    }
+
+    /**
+     * Resolves all active battles by advancing each one round.
+     * When a battle completes, the results are applied to the actual game state:
+     * damage is applied to fleets, destroyed ships are removed, destroyed fleets
+     * are cleaned up, and planets may be captured.
+     */
+    private void resolveActiveBattles() {
+        List<Battle> activeBattles = new ArrayList<>();
+        for (Battle battle : context.getBattles().values()) {
+            if (battle.getState() == Battle.BattleState.IN_PROGRESS) {
+                activeBattles.add(battle);
+            }
+        }
+
+        for (Battle battle : activeBattles) {
+            // Skip if already completed (race condition check)
+            if (battle.getState() != Battle.BattleState.IN_PROGRESS) continue;
+
+            // Advance battle one round
+            Battle.RoundResult round = battle.fightRound();
+            if (round == null) continue; // stalemate
+
+            // If battle completed, apply results
+            if (battle.getState() == Battle.BattleState.COMPLETED) {
+                applyBattleResultsToGame(battle);
+            }
+        }
+    }
+
+    /**
+     * Applies the results of a completed battle to the actual game state.
+     */
+    private void applyBattleResultsToGame(Battle battle) {
+        Fleet attacker = battle.getAttacker();
+        Fleet defender = battle.getDefender();
+        Battle.BattleOutcome outcome = battle.getOutcome();
+
+        // Apply damage from battle simulation to actual fleets
+        applyFleetDamageFromBattle(attacker, battle);
+        applyFleetDamageFromBattle(defender, battle);
+
+        // Remove destroyed ships
+        attacker.removeDestroyedShips();
+        defender.removeDestroyedShips();
+
+        // Handle fleet destruction
+        if (attacker.isDestroyed()) {
+            removeDestroyedFleet(attacker, attacker.getOwner());
+        }
+        if (defender.isDestroyed()) {
+            removeDestroyedFleet(defender, defender.getOwner());
+        }
+
+        // Handle planet capture on attacker victory
+        if (outcome == Battle.BattleOutcome.ATTACKER_VICTORY) {
+            Player attackerPlayer = attacker.getOwner();
+            Player defenderPlayer = defender.getOwner();
+            if (attackerPlayer != null && defenderPlayer != null) {
+                capturePlanetsAfterBattle(attackerPlayer, defenderPlayer, battle);
+            }
+        }
+
+        // Check player elimination
+        checkPlayerElimination(attacker.getOwner());
+        checkPlayerElimination(defender.getOwner());
+    }
+
+    /**
+     * Applies damage from battle simulation to the actual fleet.
+     */
+    private void applyFleetDamageFromBattle(Fleet actualFleet, Battle battle) {
+        boolean isAttacker = actualFleet.getId() == battle.getAttacker().getId();
+        int totalDamageDealt = isAttacker ? battle.getTotalDefenderDamage() : battle.getTotalAttackerDamage();
+        if (totalDamageDealt > 0) {
+            actualFleet.distributeDamage(totalDamageDealt);
+        }
+    }
+
+    /**
+     * Removes a destroyed fleet from the game context.
+     */
+    private void removeDestroyedFleet(Fleet fleet, Player owner) {
+        if (owner != null) {
+            owner.getOwnedFleetIds().remove(fleet.getId());
+        }
+        context.getFleets().remove(fleet.getId());
+    }
+
+    /**
+     * Captures planets when the attacker wins a battle.
+     * Since planets don't have positions, captures non-capital planets from the defender.
+     */
+    private void capturePlanetsAfterBattle(Player attackerPlayer, Player defenderPlayer, Battle battle) {
+        if (defenderPlayer.getOwnedPlanetIds().isEmpty()) return;
+
+        Fleet defender = battle.getDefender();
+        List<Integer> planetsToCapture = new ArrayList<>();
+
+        // If defender fleet has a home system, capture non-capital planets
+        if (defender.getHomeSystem() != null) {
+            for (Integer planetId : defenderPlayer.getOwnedPlanetIds()) {
+                if (defenderPlayer.getHomePlanetId() != null && defenderPlayer.getHomePlanetId().equals(planetId)) {
+                    continue;
+                }
+                planetsToCapture.add(planetId);
+            }
+        }
+
+        // If no home system, capture one random non-capital planet
+        if (planetsToCapture.isEmpty()) {
+            for (Integer planetId : defenderPlayer.getOwnedPlanetIds()) {
+                if (defenderPlayer.getHomePlanetId() != null && defenderPlayer.getHomePlanetId().equals(planetId)) {
+                    continue;
+                }
+                planetsToCapture.add(planetId);
+                break;
+            }
+        }
+
+        // Transfer captured planets
+        for (Integer planetId : planetsToCapture) {
+            defenderPlayer.removePlanet(planetId);
+            attackerPlayer.addPlanet(planetId);
+        }
+    }
+
+    /**
+     * Checks if a player should be eliminated.
+     */
+    private void checkPlayerElimination(Player player) {
+        if (player == null || player.isEliminated()) return;
+        if (player.getOwnedFleetIds().isEmpty() && player.getOwnedPlanetIds().isEmpty()) {
+            player.eliminate();
+        }
     }
 
 // Flat resource production removed – use ResourcePipelineManager for mining/processing
@@ -367,10 +552,14 @@ public class TurnManager {
                 }
             }
 
-            // Process each station's economy
+            // Process each station's economy and AI Core
             for (SpaceStation station : stations) {
                 if (!station.isDestroyed()) {
                     station.getEconomy().processTurn(pipeline);
+                    // Process station AI Core if installed
+                    if (station.hasAiCore()) {
+                        station.getAiCore().processTurn(null);
+                    }
                 }
             }
         }

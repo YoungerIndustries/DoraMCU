@@ -6,6 +6,8 @@ import com.yisy.modules.doraai.service.OllamaService.OllamaException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.net.http.HttpClient;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class OllamaServiceTest {
@@ -116,7 +118,8 @@ class OllamaServiceTest {
         config.setBaseUrl("http://localhost:9999"); // Non-existent port
         config.setConnectTimeoutMs(100);
 
-        OllamaService service = new OllamaService(config);
+        HttpClient httpClient = HttpClient.newBuilder().build();
+        OllamaService service = new OllamaService(config, httpClient);
 
         // Should return false, not throw
         boolean available = service.isAvailable();

@@ -1,0 +1,24 @@
+[project]
+name = "dora-dl"
+version = "0.1.0"
+description = "DoraMCU Deep Learning AI service — PyTorch neural network for game strategy"
+requires-python = ">=3.11"
+dependencies = [
+    "torch>=2.0.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "pydantic>=2.0",
+    "numpy>=1.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+dora-dl-server = "dora_dl.server:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"

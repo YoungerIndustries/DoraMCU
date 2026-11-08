@@ -2,6 +2,17 @@ package com.yisy.modules.doramcu.dto;
 
 import java.util.Map;
 
+/**
+ * Player summary DTO for API responses.
+ * <p>
+ * NOTE: This class mirrors {@code com.yisy.modules.doradl.dto.PlayerSummary}.
+ * The two classes cannot share a common superclass because Java generics are invariant —
+ * {@code List<doramcu.dto.PlayerSummary>} is not assignable to
+ * {@code List<dl.dto.PlayerSummary>}. Keep the field sets in sync when modifying either copy.
+ * </p>
+ *
+ * @see com.yisy.modules.doradl.dto.PlayerSummary
+ */
 public class PlayerSummary {
 
     private Long id;

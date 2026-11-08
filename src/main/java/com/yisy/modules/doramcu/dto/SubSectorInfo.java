@@ -7,6 +7,13 @@ import java.util.Set;
 /**
  * DTO representing a subsector in the galaxy.
  * Each subsector contains 1-3 solar systems with planets and fleets.
+ * <p>
+ * NOTE: This class mirrors {@code com.yisy.modules.doradl.dto.SubSectorInfo}.
+ * The two classes cannot share a common superclass because Java generics are invariant.
+ * Keep the field sets in sync when modifying either copy.
+ * </p>
+ *
+ * @see com.yisy.modules.doradl.dto.SubSectorInfo
  */
 public class SubSectorInfo {
 

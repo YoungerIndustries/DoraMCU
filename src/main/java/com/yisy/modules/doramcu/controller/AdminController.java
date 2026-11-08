@@ -7,6 +7,8 @@ import com.yisy.modules.doramcu.model.Player;
 import com.yisy.modules.doramcu.model.User;
 import com.yisy.modules.doramcu.repository.GalaxyRepository;
 import com.yisy.modules.doramcu.repository.PlayerRepository;
+import com.yisy.modules.doramcu.repository.SectorRepository;
+import com.yisy.modules.doramcu.repository.SubSectorRepository;
 import com.yisy.modules.doramcu.repository.UserRepository;
 import com.yisy.modules.doramcu.service.GalaxyProgressService;
 import com.yisy.modules.doramcu.service.GalaxyService;
@@ -38,7 +40,7 @@ import java.util.*;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/v1/admin")
+@RequestMapping("/api/v1/4x/admin")
 public class AdminController {
 
     private static final Logger log = LoggerFactory.getLogger(AdminController.class);
@@ -46,6 +48,8 @@ public class AdminController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final GalaxyRepository galaxyRepository;
+    private final SectorRepository sectorRepository;
+    private final SubSectorRepository subSectorRepository;
     private final GalaxyService galaxyService;
     private final GalaxyProgressService galaxyProgressService;
     private final PlayerRepository playerRepository;
@@ -61,6 +65,8 @@ public class AdminController {
 
     public AdminController(UserRepository userRepository, PasswordEncoder passwordEncoder,
                            GalaxyRepository galaxyRepository,
+                           SectorRepository sectorRepository,
+                           SubSectorRepository subSectorRepository,
                            GalaxyService galaxyService,
                            GalaxyProgressService galaxyProgressService,
                            PlayerRepository playerRepository,
@@ -70,6 +76,8 @@ public class AdminController {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.galaxyRepository = galaxyRepository;
+        this.sectorRepository = sectorRepository;
+        this.subSectorRepository = subSectorRepository;
         this.galaxyService = galaxyService;
         this.galaxyProgressService = galaxyProgressService;
         this.playerRepository = playerRepository;
@@ -313,8 +321,8 @@ public class AdminController {
         if (request != null && request.containsKey("galaxies")) {
             galaxyNames = request.get("galaxies");
         } else {
-            // Default: rebuild both galaxies
-            galaxyNames = List.of(GalaxyFactory.GAME_GALAXY_NAME, GalaxyFactory.TEST_GALAXY_NAME);
+            // Default: rebuild the single galaxy
+            galaxyNames = List.of(GalaxyFactory.GAME_GALAXY_NAME);
         }
 
         log.info("Admin requested rebuild of galaxies: {}", galaxyNames);
@@ -323,6 +331,8 @@ public class AdminController {
         List<String> errors = new ArrayList<>();
 
         java.util.List<Player> players = playerRepository.findAll();
+        // Reset progress service to clear any previous completed state
+        galaxyProgressService.reset();
         galaxyService.setProgressListener(galaxyProgressService);
 
         for (String name : galaxyNames) {
@@ -335,11 +345,9 @@ public class AdminController {
 
                 // Build AI-controlled empires
                 Map<Integer, Empire> empires = new HashMap<>();
-                String suffix = GalaxyFactory.TEST_GALAXY_NAME.equals(name) ? " (Test)" : null;
                 for (Player player : players) {
                     int empireId = player.getId().intValue();
-                    String empireName = suffix != null ? player.getEmpireName() + suffix : player.getEmpireName();
-                    Empire empire = new Empire(empireId, empireName, -1);
+                    Empire empire = new Empire(empireId, player.getEmpireName(), -1);
                     empires.put(empireId, empire);
                 }
 
@@ -349,9 +357,6 @@ public class AdminController {
                 if (GalaxyFactory.GAME_GALAXY_NAME.equals(name)) {
                     config = GalaxyFactory.gameGalaxyConfig();
                     seed = GalaxyFactory.GAME_GALAXY_SEED;
-                } else if (GalaxyFactory.TEST_GALAXY_NAME.equals(name)) {
-                    config = GalaxyFactory.testGalaxyConfig();
-                    seed = GalaxyFactory.TEST_GALAXY_SEED;
                 } else {
                     errors.add("Unknown galaxy: " + name);
                     continue;
@@ -375,6 +380,9 @@ public class AdminController {
             }
         }
 
+        // Signal that all galaxy generation is finished and complete SSE emitters
+        galaxyProgressService.finishAll();
+
         Map<String, Object> result = new HashMap<>();
         result.put("rebuilt", rebuilt);
         result.put("message", "Rebuilt " + rebuilt.size() + " galaxy/galaxies: " + String.join(", ", rebuilt));
@@ -397,7 +405,7 @@ public class AdminController {
         for (var entry : gameSessionService.getAllSessions().entrySet()) {
             String sessionId = entry.getKey();
             var session = entry.getValue();
-            var game = session.getGame();
+            com.yisy.modules.doramcu.hex.Game game = (com.yisy.modules.doramcu.hex.Game) session.getGame();
             Map<String, Object> info = new HashMap<>();
             info.put("sessionId", sessionId);
             info.put("sessionName", session.getName());
@@ -424,7 +432,7 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Session not found: " + sessionId));
         }
 
-        var game = session.getGame();
+        com.yisy.modules.doramcu.hex.Game game = (com.yisy.modules.doramcu.hex.Game) session.getGame();
         session.getLock().writeLock().lock();
         try {
             game.nextTurn();
@@ -535,6 +543,86 @@ public class AdminController {
         doraAiLearningService.clearExperience();
         Map<String, Object> result = new HashMap<>();
         result.put("message", "Experience buffer cleared");
+        return ResponseEntity.ok(result);
+    }
+
+    // ==================== Sector/SubSector Renaming ====================
+
+    @PutMapping("/galaxies/{galaxyId}/sectors/{row}/{col}/name")
+    public ResponseEntity<Map<String, Object>> renameSector(
+            @PathVariable Long galaxyId,
+            @PathVariable int row,
+            @PathVariable int col,
+            @RequestBody Map<String, String> request) {
+        String name = request.get("name");
+        if (name == null || name.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "name is required"));
+        }
+
+        com.yisy.modules.doramcu.model.Galaxy dbGalaxy = galaxyRepository.findById(galaxyId)
+                .orElseThrow(() -> new IllegalArgumentException("Galaxy not found: " + galaxyId));
+
+        com.yisy.modules.doramcu.model.Sector dbSector = galaxyService.findSectorByGalaxyAndPosition(galaxyId, row, col);
+        if (dbSector == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Sector not found at (" + row + ", " + col + ")"));
+        }
+
+        dbSector.setName(name);
+        sectorRepository.save(dbSector);
+
+        // Update in-memory galaxy if present in active game sessions
+        gameSessionService.updateSectorNameInMemory(dbGalaxy.getName(), row, col, name);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("message", "Sector renamed to '" + name + "'");
+        result.put("sectorRow", row);
+        result.put("sectorCol", col);
+        result.put("name", name);
+        return ResponseEntity.ok(result);
+    }
+
+    @PutMapping("/galaxies/{galaxyId}/sectors/{row}/{col}/subsectors/{subRow}/{subCol}/name")
+    public ResponseEntity<Map<String, Object>> renameSubSector(
+            @PathVariable Long galaxyId,
+            @PathVariable int row,
+            @PathVariable int col,
+            @PathVariable int subRow,
+            @PathVariable int subCol,
+            @RequestBody Map<String, String> request) {
+        String name = request.get("name");
+        if (name == null || name.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "name is required"));
+        }
+
+        com.yisy.modules.doramcu.model.Galaxy dbGalaxy = galaxyRepository.findById(galaxyId)
+                .orElseThrow(() -> new IllegalArgumentException("Galaxy not found: " + galaxyId));
+
+        com.yisy.modules.doramcu.model.Sector dbSector = galaxyService.findSectorByGalaxyAndPosition(galaxyId, row, col);
+        if (dbSector == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Sector not found at (" + row + ", " + col + ")"));
+        }
+
+        com.yisy.modules.doramcu.model.SubSector dbSubSector = galaxyService.findSubSectorBySectorAndPosition(dbSector.getId(), subRow, subCol);
+        if (dbSubSector == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "SubSector not found at (" + subRow + ", " + subCol + ")"));
+        }
+
+        dbSubSector.setName(name);
+        subSectorRepository.save(dbSubSector);
+
+        // Update in-memory galaxy if present in active game sessions
+        gameSessionService.updateSubSectorNameInMemory(dbGalaxy.getName(), row, col, subRow, subCol, name);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("message", "SubSector renamed to '" + name + "'");
+        result.put("sectorRow", row);
+        result.put("sectorCol", col);
+        result.put("subSectorRow", subRow);
+        result.put("subSectorCol", subCol);
+        result.put("name", name);
         return ResponseEntity.ok(result);
     }
 

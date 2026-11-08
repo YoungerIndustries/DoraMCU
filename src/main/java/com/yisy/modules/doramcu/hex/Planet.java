@@ -1,5 +1,7 @@
 package com.yisy.modules.doramcu.hex;
 
+import com.yisy.modules.doramcu.traveller.TradeCode;
+
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.HashSet;
@@ -46,6 +48,23 @@ public class Planet extends CelestialBody {
     private StarBase orbitingStarBase;
     /** True if this planet is the capital of its empire. */
     private boolean isCapital = false;
+
+    // ---- Traveller UWP (Universal World Profile) fields ----
+
+    /** Atmosphere value (0-10, where 10 = 'A' = none). Null if not set. */
+    private Integer atmosphere;
+    /** Gravity value (0-10, where 10 = 'A' = none). Null if not set. */
+    private Integer gravity;
+    /** Starport class (0-10, where 0 = XL, 10 = 'A' = none). Null if not set. */
+    private Integer starport;
+    /** Population level (0-10, where 0 = none, 10 = 'A' = 1+ trillion). Null if not set. */
+    private Integer populationLevel;
+    /** Government type (0-10, where 10 = 'A' = none). Null if not set. */
+    private Integer governmentType;
+    /** Law level (0-10, where 0 = 'A' = anarchy, 10 = 'X' = total control). Null if not set. */
+    private Integer lawLevel;
+    /** Trade codes applied to this planet. */
+    private final Set<TradeCode> tradeCodes = new HashSet<>();
 
     /**
      * Creates a new planet with the given ID and default geometry.
@@ -648,10 +667,122 @@ public class Planet extends CelestialBody {
         return Integer.hashCode(id);
     }
 
+    // ========================================================================
+    // Traveller UWP (Universal World Profile) accessors
+    // ========================================================================
+
+    /** Returns the UWP atmosphere value (0-10). Null if not set. */
+    public Integer getUwpAtmosphere() {
+        return atmosphere;
+    }
+
+    /** Sets the UWP atmosphere value (0-10, where 10 = 'A' = none). */
+    public void setUwpAtmosphere(Integer atmosphere) {
+        this.atmosphere = atmosphere;
+    }
+
+    /** Returns the UWP gravity value (0-10). Null if not set. */
+    public Integer getUwpGravity() {
+        return gravity;
+    }
+
+    /** Sets the UWP gravity value (0-10, where 10 = 'A' = none). */
+    public void setUwpGravity(Integer gravity) {
+        this.gravity = gravity;
+    }
+
+    /** Returns the UWP starport class (0-10). Null if not set. */
+    public Integer getUwpStarport() {
+        return starport;
+    }
+
+    /** Sets the UWP starport class (0-10, where 0 = XL, 10 = 'A' = none). */
+    public void setUwpStarport(Integer starport) {
+        this.starport = starport;
+    }
+
+    /** Returns the UWP population level (0-10). Null if not set. */
+    public Integer getUwpPopulationLevel() {
+        return populationLevel;
+    }
+
+    /** Sets the UWP population level (0-10, where 0 = none, 10 = 'A' = 1+ trillion). */
+    public void setUwpPopulationLevel(Integer populationLevel) {
+        this.populationLevel = populationLevel;
+    }
+
+    /** Returns the UWP government type (0-10). Null if not set. */
+    public Integer getUwpGovernmentType() {
+        return governmentType;
+    }
+
+    /** Sets the UWP government type (0-10, where 10 = 'A' = none). */
+    public void setUwpGovernmentType(Integer governmentType) {
+        this.governmentType = governmentType;
+    }
+
+    /** Returns the UWP law level (0-10). Null if not set. */
+    public Integer getUwpLawLevel() {
+        return lawLevel;
+    }
+
+    /** Sets the UWP law level (0-10, where 0 = 'A' = anarchy, 10 = 'X' = total control). */
+    public void setUwpLawLevel(Integer lawLevel) {
+        this.lawLevel = lawLevel;
+    }
+
+    /** Returns the set of trade codes (immutable copy). */
+    public Set<TradeCode> getTradeCodes() {
+        return new HashSet<>(tradeCodes);
+    }
+
+    /** Adds a trade code to this planet. */
+    public void addTradeCode(TradeCode code) {
+        tradeCodes.add(code);
+    }
+
+    /** Removes a trade code from this planet. */
+    public void removeTradeCode(TradeCode code) {
+        tradeCodes.remove(code);
+    }
+
+    /** Returns true if this planet has UWP data set. */
+    public boolean hasUWP() {
+        return getUwpAtmosphere() != null && getUwpGravity() != null && getUwpStarport() != null
+                && getUwpPopulationLevel() != null && getUwpGovernmentType() != null && getUwpLawLevel() != null;
+    }
+
+    /**
+     * Returns the UWP string representation (e.g., "A544430-D").
+     * Returns null if UWP is not fully set.
+     */
+    public String getUWPString() {
+        if (!hasUWP()) {
+            return null;
+        }
+        // Planet size maps to UWP body size: 0-9, A
+        int bodySize = Math.min(10, size.ordinal());
+        return uwpChar(bodySize)
+                + uwpChar(getUwpStarport())
+                + uwpChar(getUwpAtmosphere())
+                + uwpChar(getUwpGravity())
+                + uwpChar(getUwpPopulationLevel())
+                + uwpChar(getUwpPopulationLevel())
+                + uwpChar(getUwpGovernmentType())
+                + "-" + uwpChar(getUwpLawLevel());
+    }
+
+    private String uwpChar(int value) {
+        if (value < 0 || value > 10) return "?";
+        if (value < 10) return String.valueOf(value);
+        return "A";
+    }
+
     @Override
     public String toString() {
-        return String.format("Planet{name='%s', id=%d, size=%s, minerals=%s, radius=%d, pop=%d/%d, fleets=%d, deposits=%s, facilities=%s}",
+        String uwp = hasUWP() ? ", uwp=" + getUWPString() : "";
+        return String.format("Planet{name='%s', id=%d, size=%s, minerals=%s, radius=%d, pop=%d/%d, fleets=%d, deposits=%s, facilities=%s%s}",
                 name, id, size, mineralQuality, getRadius(), currentPopulation, size.getMaxPopulation(),
-                getStationedFleetCount(), strategicDeposits, startingFacilities);
+                getStationedFleetCount(), strategicDeposits, startingFacilities, uwp);
     }
 }

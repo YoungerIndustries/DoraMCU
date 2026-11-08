@@ -141,7 +141,6 @@ public class Asteroid extends CelestialBody {
         this.occupiedOutposts = new ArrayList<>();
         this.movementPenalty = asteroidSize.getMovementPenalty();
         this.parentBeltId = null;
-        generate();
     }
 
     @Override

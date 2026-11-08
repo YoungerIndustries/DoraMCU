@@ -142,7 +142,6 @@ public class Comet extends CelestialBody {
         this.remainingTurns = cometSize.getBaseDurationTurns();
         this.researchBonus = cometSize.getResearchBonus();
         this.harvested = false;
-        generate();
     }
 
     @Override

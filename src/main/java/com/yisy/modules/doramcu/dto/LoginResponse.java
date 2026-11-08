@@ -9,6 +9,7 @@ public class LoginResponse {
     private String governmentType;
     private String ethos;
     private boolean isAdmin;
+    private String sessionId;
 
     public LoginResponse() {
     }
@@ -79,5 +80,13 @@ public class LoginResponse {
 
     public void setAdmin(boolean admin) {
         isAdmin = admin;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
     }
 }

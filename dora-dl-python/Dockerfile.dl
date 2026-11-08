@@ -1,0 +1,19 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install dependencies
+COPY pyproject.toml ./
+RUN pip install --no-cache-dir -e .
+
+# Copy source code
+COPY src/ src/
+
+# Create model directory
+RUN mkdir -p dl-models
+
+# Expose the DL service port
+EXPOSE 8083
+
+# Run the service
+CMD ["python", "-m", "dora_dl"]

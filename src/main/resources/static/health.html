@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DoraMCU - Health Dashboard</title>
+    <link rel="stylesheet" href="css/game.css">
+    <link rel="stylesheet" href="css/health.css">
+</head>
+<body>
+    <!-- SVG Icon Sprite -->
+    <object data="icons/icons.svg" type="image/svg+xml" style="display:none"></object>
+
+    <div class="health-dashboard">
+        <!-- Header -->
+        <div class="health-header">
+            <div class="header-top">
+                <div class="app-logo">
+                    <svg class="icon" style="width:3rem;height:3rem"><use href="#icon-rocket"></use></svg>
+                </div>
+                <div class="header-title">
+                    <h1>DORAMCU Health Dashboard</h1>
+                    <p class="header-subtitle">Real-time system monitoring &amp; agent status</p>
+                </div>
+            </div>
+            <div class="header-controls">
+                <div class="refresh-info">
+                    <span class="status-dot" id="overallStatus"></span>
+                    <span id="overallLabel">Checking...</span>
+                </div>
+                <div class="refresh-controls">
+                    <span class="refresh-label">Auto-refresh:</span>
+                    <button class="btn btn-sm" id="refreshBtn" onclick="toggleAutoRefresh()">
+                        <svg class="icon"><use href="#icon-refresh"></use></svg>
+                        <span id="refreshLabel">10s</span>
+                    </button>
+                    <button class="btn btn-sm" onclick="loadDashboard()">
+                        <svg class="icon"><use href="#icon-refresh"></use></svg>
+                        Now
+                    </button>
+                    <a href="index.html" class="btn btn-sm btn-outline">
+                        <svg class="icon"><use href="#icon-home"></use></svg>
+                        Login
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- App Info Bar -->
+        <div class="app-info-bar">
+            <div class="info-item">
+                <span class="info-label">Version</span>
+                <span class="info-value" id="appVersion">-</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Uptime</span>
+                <span class="info-value" id="appUptime">-</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Last Updated</span>
+                <span class="info-value" id="lastUpdated">-</span>
+            </div>
+        </div>
+
+        <!-- Start Game Overlay (shown when game is not started) -->
+        <div class="start-game-overlay" id="startGameOverlay">
+            <div class="start-game-card">
+                <svg class="icon start-game-icon"><use href="#icon-rocket"></use></svg>
+                <h2>Server Ready</h2>
+                <p>All systems are operational. Press the button below to generate the galaxy and start the game.</p>
+                <button class="btn-start-game" id="startGameBtn" onclick="startGame()">
+                    <svg class="icon"><use href="#icon-rocket"></use></svg>
+                    Start Game
+                </button>
+                <p class="start-game-status" id="startGameStatus"></p>
+            </div>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="health-grid">
+
+            <!-- JVM Health -->
+            <div class="health-card">
+                <div class="card-header">
+                    <svg class="icon"><use href="#icon-cpu"></use></svg>
+                    <h2>JVM Runtime</h2>
+                    <span class="status-badge" id="jvmStatus">-</span>
+                </div>
+                <div class="card-body">
+                    <div class="metric-row">
+                        <span class="metric-label">Heap Usage</span>
+                        <span class="metric-value" id="heapUsage">-</span>
+                    </div>
+                    <div class="metric-bar">
+                        <div class="metric-bar-fill" id="heapBar"></div>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Threads</span>
+                        <span class="metric-value" id="threadCount">-</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Non-Heap</span>
+                        <span class="metric-value" id="nonHeapUsage">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OS Health -->
+            <div class="health-card">
+                <div class="card-header">
+                    <svg class="icon"><use href="#icon-server"></use></svg>
+                    <h2>System</h2>
+                    <span class="status-badge" id="osStatus">UP</span>
+                </div>
+                <div class="card-body">
+                    <div class="metric-row">
+                        <span class="metric-label">OS</span>
+                        <span class="metric-value" id="osName">-</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Architecture</span>
+                        <span class="metric-value" id="osArch">-</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Processors</span>
+                        <span class="metric-value" id="osProcessors">-</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Load Average</span>
+                        <span class="metric-value" id="osLoad">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Database -->
+            <div class="health-card">
+                <div class="card-header">
+                    <svg class="icon"><use href="#icon-database"></use></svg>
+                    <h2>Database</h2>
+                    <span class="status-badge" id="dbStatus">-</span>
+                </div>
+                <div class="card-body">
+                    <div class="metric-row">
+                        <span class="metric-label">Type</span>
+                        <span class="metric-value" id="dbType">-</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Version</span>
+                        <span class="metric-value" id="dbVersion">-</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Connection</span>
+                        <span class="metric-value" id="dbConnection">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ollama AI -->
+            <div class="health-card">
+                <div class="card-header">
+                    <svg class="icon"><use href="#icon-brain"></use></svg>
+                    <h2>Ollama AI</h2>
+                    <span class="status-badge" id="ollamaStatus">-</span>
+                </div>
+                <div class="card-body">
+                    <div class="metric-row">
+                        <span class="metric-label">Service</span>
+                        <span class="metric-value" id="ollamaService">-</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Status</span>
+                        <span class="metric-value" id="ollamaConnection">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Python Server -->
+            <div class="health-card">
+                <div class="card-header">
+                    <svg class="icon"><use href="#icon-code"></use></svg>
+                    <h2>Python AI Server</h2>
+                    <span class="status-badge" id="pythonStatus">-</span>
+                </div>
+                <div class="card-body">
+                    <div class="metric-row">
+                        <span class="metric-label">Port</span>
+                        <span class="metric-value" id="pythonPort">-</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">URL</span>
+                        <span class="metric-value" id="pythonUrl">-</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Error</span>
+                        <span class="metric-value" id="pythonError">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Sessions -->
+            <div class="health-card">
+                <div class="card-header">
+                    <svg class="icon"><use href="#icon-galaxy"></use></svg>
+                    <h2>Game Sessions</h2>
+                    <span class="status-badge" id="gameStatus">-</span>
+                </div>
+                <div class="card-body">
+                    <div class="metric-row">
+                        <span class="metric-label">Active Sessions</span>
+                        <span class="metric-value" id="activeSessions">-</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">AI Players</span>
+                        <span class="metric-value" id="aiPlayers">-</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Current Turn</span>
+                        <span class="metric-value" id="currentTurn">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Turn Scheduler -->
+            <div class="health-card">
+                <div class="card-header">
+                    <svg class="icon"><use href="#icon-clock"></use></svg>
+                    <h2>Turn Scheduler</h2>
+                    <span class="status-badge" id="schedulerStatus">-</span>
+                </div>
+                <div class="card-body">
+                    <div class="metric-row">
+                        <span class="metric-label">Running</span>
+                        <span class="metric-value" id="schedulerRunning">-</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Interval</span>
+                        <span class="metric-value" id="schedulerInterval">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DL Circuit Breaker -->
+            <div class="health-card">
+                <div class="card-header">
+                    <svg class="icon"><use href="#icon-shield"></use></svg>
+                    <h2>DL Circuit Breaker</h2>
+                    <span class="status-badge" id="dlStatus">-</span>
+                </div>
+                <div class="card-body">
+                    <div class="metric-row">
+                        <span class="metric-label">Status</span>
+                        <span class="metric-value" id="dlStatusText">-</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Note</span>
+                        <span class="metric-value" id="dlNote">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Junie Agent -->
+            <div class="health-card highlight-card">
+                <div class="card-header">
+                    <svg class="icon"><use href="#icon-robot"></use></svg>
+                    <h2>Junie Agent</h2>
+                    <span class="status-badge" id="junieStatus">-</span>
+                </div>
+                <div class="card-body">
+                    <div class="metric-row">
+                        <span class="metric-label">Agent</span>
+                        <span class="metric-value" id="junieAgent">-</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Model</span>
+                        <span class="metric-value" id="junieModel">-</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Provider</span>
+                        <span class="metric-value" id="junieProvider">-</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">CLI Running</span>
+                        <span class="metric-value" id="junieCli">-</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="metric-label">Sessions</span>
+                        <span class="metric-value" id="junieSessions">-</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="health-footer">
+            <p>DoraMCU v0.1.7 — Health Dashboard</p>
+        </div>
+    </div>
+
+    <script src="js/health.js"></script>
+</body>
+</html>

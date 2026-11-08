@@ -32,6 +32,9 @@ public class Galaxy {
     @OneToMany(mappedBy = "galaxy", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SolarSystem> solarSystems = new ArrayList<>();
 
+    @OneToMany(mappedBy = "galaxy", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Sector> sectors = new ArrayList<>();
+
     public Galaxy() {
     }
 
@@ -79,6 +82,14 @@ public class Galaxy {
 
     public void setSolarSystems(List<SolarSystem> solarSystems) {
         this.solarSystems = solarSystems;
+    }
+
+    public List<Sector> getSectors() {
+        return sectors;
+    }
+
+    public void setSectors(List<Sector> sectors) {
+        this.sectors = sectors;
     }
 
     @Override

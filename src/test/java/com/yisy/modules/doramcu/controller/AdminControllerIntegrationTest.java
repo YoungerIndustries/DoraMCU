@@ -17,13 +17,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import com.yisy.modules.doramcu.DoraMcuApplication;
+import com.yisy.modules.doramcu.DoraMcuLauncher;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(classes = DoraMcuApplication.class)
+@SpringBootTest(classes = DoraMcuLauncher.class)
 @ActiveProfiles("test")
 class AdminControllerIntegrationTest {
 
@@ -68,16 +68,16 @@ class AdminControllerIntegrationTest {
     // ==================== Server Status Integration Tests ====================
 
     @Test
-    @DisplayName("GET /api/v1/admin/server/status - should return 403 without token")
+    @DisplayName("GET /api/v1/4x/admin/server/status - should return 403 without token")
     void getServerStatus_unauthorized() throws Exception {
-        mockMvc.perform(get("/api/v1/admin/server/status"))
+        mockMvc.perform(get("/api/v1/4x/admin/server/status"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    @DisplayName("GET /api/v1/admin/server/status - should return 200 with valid token")
+    @DisplayName("GET /api/v1/4x/admin/server/status - should return 200 with valid token")
     void getServerStatus_authenticated() throws Exception {
-        mockMvc.perform(get("/api/v1/admin/server/status")
+        mockMvc.perform(get("/api/v1/4x/admin/server/status")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.uptime").isString())
@@ -95,7 +95,7 @@ class AdminControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/admin/server/status - should return correct user count")
+    @DisplayName("GET /api/v1/4x/admin/server/status - should return correct user count")
     void getServerStatus_userCount() throws Exception {
         // Add another user
         User user2 = new User();
@@ -103,7 +103,7 @@ class AdminControllerIntegrationTest {
         user2.setPassword(passwordEncoder.encode("pass"));
         userRepository.save(user2);
 
-        mockMvc.perform(get("/api/v1/admin/server/status")
+        mockMvc.perform(get("/api/v1/4x/admin/server/status")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userCount").value(2));
@@ -112,21 +112,21 @@ class AdminControllerIntegrationTest {
     // ==================== User Management Integration Tests ====================
 
     @Test
-    @DisplayName("GET /api/v1/admin/users - should return 403 without token")
+    @DisplayName("GET /api/v1/4x/admin/users - should return 403 without token")
     void getAllUsers_unauthorized() throws Exception {
-        mockMvc.perform(get("/api/v1/admin/users"))
+        mockMvc.perform(get("/api/v1/4x/admin/users"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    @DisplayName("GET /api/v1/admin/users - should return user list without passwords")
+    @DisplayName("GET /api/v1/4x/admin/users - should return user list without passwords")
     void getAllUsers_authenticated() throws Exception {
         User user2 = new User();
         user2.setUsername("user2");
         user2.setPassword(passwordEncoder.encode("pass"));
         userRepository.save(user2);
 
-        mockMvc.perform(get("/api/v1/admin/users")
+        mockMvc.perform(get("/api/v1/4x/admin/users")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
@@ -136,9 +136,9 @@ class AdminControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/admin/users - should create user successfully")
+    @DisplayName("POST /api/v1/4x/admin/users - should create user successfully")
     void createUser_success() throws Exception {
-        mockMvc.perform(post("/api/v1/admin/users")
+        mockMvc.perform(post("/api/v1/4x/admin/users")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"newuser\",\"password\":\"newpass123\"}"))
@@ -150,9 +150,9 @@ class AdminControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/admin/users - should return 400 for missing username")
+    @DisplayName("POST /api/v1/4x/admin/users - should return 400 for missing username")
     void createUser_missingUsername() throws Exception {
-        mockMvc.perform(post("/api/v1/admin/users")
+        mockMvc.perform(post("/api/v1/4x/admin/users")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"password\":\"newpass123\"}"))
@@ -161,9 +161,9 @@ class AdminControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/admin/users - should return 400 for blank username")
+    @DisplayName("POST /api/v1/4x/admin/users - should return 400 for blank username")
     void createUser_blankUsername() throws Exception {
-        mockMvc.perform(post("/api/v1/admin/users")
+        mockMvc.perform(post("/api/v1/4x/admin/users")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"   \",\"password\":\"newpass123\"}"))
@@ -172,9 +172,9 @@ class AdminControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/admin/users - should return 400 for missing password")
+    @DisplayName("POST /api/v1/4x/admin/users - should return 400 for missing password")
     void createUser_missingPassword() throws Exception {
-        mockMvc.perform(post("/api/v1/admin/users")
+        mockMvc.perform(post("/api/v1/4x/admin/users")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"newuser\"}"))
@@ -183,9 +183,9 @@ class AdminControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/admin/users - should return 400 for duplicate username")
+    @DisplayName("POST /api/v1/4x/admin/users - should return 400 for duplicate username")
     void createUser_duplicateUsername() throws Exception {
-        mockMvc.perform(post("/api/v1/admin/users")
+        mockMvc.perform(post("/api/v1/4x/admin/users")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"admin\",\"password\":\"newpass123\"}"))
@@ -194,14 +194,14 @@ class AdminControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("DELETE /api/v1/admin/users/{id} - should delete user successfully")
+    @DisplayName("DELETE /api/v1/4x/admin/users/{id} - should delete user successfully")
     void deleteUser_success() throws Exception {
         User userToDelete = new User();
         userToDelete.setUsername("todelete");
         userToDelete.setPassword(passwordEncoder.encode("pass"));
         userToDelete = userRepository.save(userToDelete);
 
-        mockMvc.perform(delete("/api/v1/admin/users/{id}", userToDelete.getId())
+        mockMvc.perform(delete("/api/v1/4x/admin/users/{id}", userToDelete.getId())
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isNoContent());
 
@@ -209,9 +209,9 @@ class AdminControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("DELETE /api/v1/admin/users/{id} - should return 404 for non-existent user")
+    @DisplayName("DELETE /api/v1/4x/admin/users/{id} - should return 404 for non-existent user")
     void deleteUser_notFound() throws Exception {
-        mockMvc.perform(delete("/api/v1/admin/users/{id}", 999L)
+        mockMvc.perform(delete("/api/v1/4x/admin/users/{id}", 999L)
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isNotFound());
     }
@@ -219,9 +219,9 @@ class AdminControllerIntegrationTest {
     // ==================== Server Configuration Integration Tests ====================
 
     @Test
-    @DisplayName("GET /api/v1/admin/config - should return server configuration")
+    @DisplayName("GET /api/v1/4x/admin/config - should return server configuration")
     void getServerConfig_authenticated() throws Exception {
-        mockMvc.perform(get("/api/v1/admin/config")
+        mockMvc.perform(get("/api/v1/4x/admin/config")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.serverPort").isNumber())
@@ -234,10 +234,10 @@ class AdminControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("PUT /api/v1/admin/config/logging-level - should update logging level")
+    @DisplayName("PUT /api/v1/4x/admin/config/logging-level - should update logging level")
     void updateLoggingLevel_success() throws Exception {
         for (String level : new String[]{"TRACE", "DEBUG", "INFO", "WARN", "ERROR"}) {
-            mockMvc.perform(put("/api/v1/admin/config/logging-level")
+            mockMvc.perform(put("/api/v1/4x/admin/config/logging-level")
                             .header("Authorization", "Bearer " + adminToken)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{\"level\":\"" + level + "\"}"))
@@ -247,9 +247,9 @@ class AdminControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("PUT /api/v1/admin/config/logging-level - should return 400 for invalid level")
+    @DisplayName("PUT /api/v1/4x/admin/config/logging-level - should return 400 for invalid level")
     void updateLoggingLevel_invalid() throws Exception {
-        mockMvc.perform(put("/api/v1/admin/config/logging-level")
+        mockMvc.perform(put("/api/v1/4x/admin/config/logging-level")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"level\":\"INVALID\"}"))
@@ -258,9 +258,9 @@ class AdminControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("PUT /api/v1/admin/config/logging-level - should return 400 for lowercase level")
+    @DisplayName("PUT /api/v1/4x/admin/config/logging-level - should return 400 for lowercase level")
     void updateLoggingLevel_lowercase() throws Exception {
-        mockMvc.perform(put("/api/v1/admin/config/logging-level")
+        mockMvc.perform(put("/api/v1/4x/admin/config/logging-level")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"level\":\"debug\"}"))
@@ -268,9 +268,9 @@ class AdminControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("PUT /api/v1/admin/config/logging-level - should return 400 for null level")
+    @DisplayName("PUT /api/v1/4x/admin/config/logging-level - should return 400 for null level")
     void updateLoggingLevel_null() throws Exception {
-        mockMvc.perform(put("/api/v1/admin/config/logging-level")
+        mockMvc.perform(put("/api/v1/4x/admin/config/logging-level")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
@@ -280,9 +280,9 @@ class AdminControllerIntegrationTest {
     // ==================== System Logs Integration Tests ====================
 
     @Test
-    @DisplayName("GET /api/v1/admin/logs - should return empty logs when file does not exist")
+    @DisplayName("GET /api/v1/4x/admin/logs - should return empty logs when file does not exist")
     void getLogs_fileNotFound() throws Exception {
-        mockMvc.perform(get("/api/v1/admin/logs")
+        mockMvc.perform(get("/api/v1/4x/admin/logs")
                         .header("Authorization", "Bearer " + adminToken)
                         .param("lines", "10"))
                 .andExpect(status().isOk())
@@ -292,9 +292,9 @@ class AdminControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/admin/logs - should use default 100 lines when not specified")
+    @DisplayName("GET /api/v1/4x/admin/logs - should use default 100 lines when not specified")
     void getLogs_defaultLines() throws Exception {
-        mockMvc.perform(get("/api/v1/admin/logs")
+        mockMvc.perform(get("/api/v1/4x/admin/logs")
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.logs").isArray());
@@ -305,7 +305,7 @@ class AdminControllerIntegrationTest {
     @Test
     @DisplayName("Should reject invalid JWT token")
     void rejectInvalidToken() throws Exception {
-        mockMvc.perform(get("/api/v1/admin/server/status")
+        mockMvc.perform(get("/api/v1/4x/admin/server/status")
                         .header("Authorization", "Bearer invalid.token.here"))
                 .andExpect(status().isForbidden());
     }
@@ -313,7 +313,7 @@ class AdminControllerIntegrationTest {
     @Test
     @DisplayName("Should reject missing Authorization header")
     void rejectMissingAuthHeader() throws Exception {
-        mockMvc.perform(get("/api/v1/admin/server/status"))
+        mockMvc.perform(get("/api/v1/4x/admin/server/status"))
                 .andExpect(status().isForbidden());
     }
 }

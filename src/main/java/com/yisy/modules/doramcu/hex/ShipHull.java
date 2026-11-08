@@ -31,7 +31,7 @@ public class ShipHull {
     public ShipHull(Ship ship) {
         this.ship = ship;
         this.hullModules = new ArrayList<>();
-        this.componentSpaces = new HashMap<>();
+        this.componentSpaces = new HashMap<ShipComponent, List<M3space>>();
         initializeModules();
     }
 

@@ -1,8 +1,10 @@
 package com.yisy.modules.doramcu.service;
 
 import com.yisy.modules.doramcu.dto.GameEvent;
-import com.yisy.modules.doramcu.hex.Game;
 import com.yisy.modules.doramcu.model.GameSession;
+import com.yisy.modules.doramcu.unified.GameEngine;
+import com.yisy.modules.doramcu.unified.GlobalClock;
+import com.yisy.modules.doramcu.unified.GlobalClockService;
 import com.yisy.modules.doradl.dl.service.DoraAiLearningService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,8 +32,8 @@ public class TurnScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(TurnScheduler.class);
 
-    /** Default turn interval: 5 seconds per turn. */
-    private static final long DEFAULT_TURN_INTERVAL_SECONDS = 5;
+    /** Default turn interval: 30 seconds per turn (one in-game day). */
+    private static final long DEFAULT_TURN_INTERVAL_SECONDS = 30;
 
     /** Whether the scheduler is currently running. */
     private volatile boolean enabled = true;
@@ -45,20 +47,23 @@ public class TurnScheduler {
     private final GameSessionService gameSessionService;
     private final AiPlayerService aiPlayerService;
     private final DoraAiLearningService doraAiLearningService;
+    private final GlobalClockService globalClockService;
 
-    @Value("${doramcu.turn.interval.seconds:5}")
+    @Value("${doramcu.turn.interval.seconds:30}")
     public void setDefaultTurnInterval(long interval) {
         this.turnIntervalSeconds = interval;
-        log.info("Turn scheduler initialized with interval: {} seconds", interval);
+        log.info("Turn scheduler initialized with interval: {} seconds (one in-game day per turn)", interval);
     }
 
     @Autowired
     public TurnScheduler(GameSessionService gameSessionService,
                          @Lazy AiPlayerService aiPlayerService,
-                         DoraAiLearningService doraAiLearningService) {
+                         DoraAiLearningService doraAiLearningService,
+                         GlobalClockService globalClockService) {
         this.gameSessionService = gameSessionService;
         this.aiPlayerService = aiPlayerService;
         this.doraAiLearningService = doraAiLearningService;
+        this.globalClockService = globalClockService;
     }
 
     /**
@@ -74,7 +79,7 @@ public class TurnScheduler {
         for (Map.Entry<String, GameSession> entry : gameSessionService.getAllSessions().entrySet()) {
             String sessionId = entry.getKey();
             GameSession session = entry.getValue();
-            Game game = session.getGame();
+            GameEngine game = session.getGame();
 
             // Skip sessions with no players
             if (game.getPlayers().isEmpty()) {
@@ -94,6 +99,11 @@ public class TurnScheduler {
                         session.getLock().writeLock().lock();
                         try {
                             game.nextTurn();
+                            // Advance global clock by one turn (one in-game day)
+                            GlobalClock clock = session.getGlobalClock();
+                            if (clock != null) {
+                                clock.advanceTurn();
+                            }
                             // Simultaneous turns: all players act concurrently, no player cycling
                         } finally {
                             session.getLock().writeLock().unlock();
@@ -191,16 +201,16 @@ public class TurnScheduler {
                 AiPlayerService.Difficulty difficulty = AiPlayerService.Difficulty.valueOf(difficultyName);
                 Map<Long, AiPlayerService.Difficulty> aiMap = Map.of(aiPlayerId, difficulty);
 
-                // Capture game state before AI action for learning
+                // Capture game state before AI action for learning (summary mode to avoid full subsector iteration)
                 com.yisy.modules.doramcu.dto.GameStateResponse stateBefore =
-                        gameSessionService.getGameState(aiPlayerId, sessionId);
+                        gameSessionService.getGameState(aiPlayerId, sessionId, true);
 
                 // Execute AI turn
                 aiPlayerService.executeAiTurn(sessionId, aiMap);
 
-                // Capture game state after AI action for learning
+                // Capture game state after AI action for learning (summary mode to avoid full subsector iteration)
                 com.yisy.modules.doramcu.dto.GameStateResponse stateAfter =
-                        gameSessionService.getGameState(aiPlayerId, sessionId);
+                        gameSessionService.getGameState(aiPlayerId, sessionId, true);
 
                 // Compute reward and record for learning
                 double reward = doraAiLearningService.computeReward(

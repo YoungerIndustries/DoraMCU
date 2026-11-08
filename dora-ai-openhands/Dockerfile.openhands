@@ -1,0 +1,19 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+# Install uv for fast Python package management
+RUN pip install --no-cache-dir uv
+
+# Copy project config and install dependencies
+COPY pyproject.toml ./
+RUN uv pip install --system -e ".[dev]" || uv pip install --system fastapi "uvicorn[standard]" pydantic openhands-sdk openhands-tools
+
+# Copy source code
+COPY src/ ./src/
+
+# Expose the server port
+EXPOSE 8082
+
+# Run the server
+CMD ["python", "-m", "dora_ai_openhands.server"]

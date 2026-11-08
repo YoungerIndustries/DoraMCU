@@ -18,15 +18,17 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-web'
+    // Web types needed at compile time only — the root module provides the web runtime context.
+    compileOnly 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
-    
+    implementation 'com.github.ben-manes.caffeine:caffeine'
+
     // Shared DL core module (includes Deeplearning4j dependencies)
     implementation project(':dora-dl-core')
-    
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-web'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 

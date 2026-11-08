@@ -82,6 +82,10 @@ public class Planet {
     @Column(name = "resource")
     private Set<StrategicResource> strategicDeposits = new HashSet<>();
 
+    /** Empire that currently owns this planet (null if unclaimed). */
+    @Column(name = "owner_empire_id")
+    private Integer ownerEmpireId;
+
     /** Planet size determining capacity and yield. */
     public enum PlanetSize {
         SMALL,
@@ -97,15 +101,6 @@ public class Planet {
         NORMAL,
         RICH,
         ULTRA_RICH
-    }
-
-    /** Strategic resources for ship building. */
-    public enum StrategicResource {
-        ELERIUM,
-        ANTI_MATTER,
-        THULIUM,
-        DURANTIUM,
-        PROMETHION
     }
 
     public Planet() {
@@ -273,6 +268,14 @@ public class Planet {
 
     public void setStrategicDeposits(Set<StrategicResource> strategicDeposits) {
         this.strategicDeposits = strategicDeposits;
+    }
+
+    public Integer getOwnerEmpireId() {
+        return ownerEmpireId;
+    }
+
+    public void setOwnerEmpireId(Integer ownerEmpireId) {
+        this.ownerEmpireId = ownerEmpireId;
     }
 
     @Override

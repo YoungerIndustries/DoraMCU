@@ -40,11 +40,9 @@ public class OpenHandsServiceProvider implements AiProvider {
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
-    public OpenHandsServiceProvider(OpenHandsConfig config) {
+    public OpenHandsServiceProvider(OpenHandsConfig config, HttpClient httpClient) {
         this.config = config;
-        this.httpClient = HttpClient.newBuilder()
-                .connectTimeout(java.time.Duration.ofMillis(config.getConnectTimeoutMs()))
-                .build();
+        this.httpClient = httpClient;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -96,7 +94,7 @@ public class OpenHandsServiceProvider implements AiProvider {
 
     @Override
     public SseEmitter streamChat(String model, List<Message> messages) {
-        SseEmitter emitter = new SseEmitter(0L);
+        SseEmitter emitter = new SseEmitter(300_000L); // 5 minute timeout
         streamChat(model, messages, emitter, null);
         return emitter;
     }

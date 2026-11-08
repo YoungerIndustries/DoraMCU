@@ -2,6 +2,15 @@ package com.yisy.modules.doradl.dto;
 
 import java.util.List;
 
+/**
+ * DTO representing a game state response for the DL (deep learning) module.
+ * <p>
+ * NOTE: This is a lightweight subset of {@code com.yisy.modules.doramcu.dto.GameStateResponse}.
+ * The two classes are intentionally duplicated because dora-dl-core is a standalone library
+ * that cannot depend on the root DoraMCU module. Keep the field sets in sync when adding
+ * new features to the root module's version.
+ * </p>
+ */
 public class GameStateResponse {
 
     private String sessionId;
